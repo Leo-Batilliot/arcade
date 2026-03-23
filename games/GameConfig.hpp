@@ -57,7 +57,7 @@ namespace SnakeLayout {
 
     // Controls hint
     constexpr float CONTROLS_X     = 0.5f;
-    constexpr float CONTROLS_Y     = 0.81f;
+    constexpr float CONTROLS_Y     = 0.83f;
     constexpr Color CONTROLS_COLOR = Colors::Gray;
     constexpr float CONTROLS_SCALE = 1.0f;
 }
@@ -106,7 +106,7 @@ namespace MinesweeperLayout {
 
     // Controls hint
     constexpr float CONTROLS_X     = 0.5f;
-    constexpr float CONTROLS_Y     = 0.81f;
+    constexpr float CONTROLS_Y     = 0.83f;
     constexpr Color CONTROLS_COLOR = Colors::Gray;
     constexpr float CONTROLS_SCALE = 1.0f;
 
