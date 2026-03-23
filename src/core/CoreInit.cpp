@@ -119,6 +119,7 @@ void Core::loadGame(int index)
     if (_gameLibs.empty() || !_display)
         return;
 
+    _display->stopMusic(); // stop SFML streaming before _musicBuffer realloc
     unloadGame();
     _gameLoader  = std::make_unique<DLLoader>(_gameLibs[index].path);
     auto create  = _gameLoader->getSymbol<IGameModule*(*)()>("createGame");

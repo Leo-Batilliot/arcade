@@ -18,6 +18,8 @@ void Core::playCurrentMusic()
 
 void Core::startMenuMusic()
 {
+    if (_display)
+        _display->stopMusic(); // stop SFML streaming before _musicBuffer realloc
     if (MENU_MUSIC_SIZE > 0)
         _musicBuffer.assign(MENU_MUSIC_DATA, MENU_MUSIC_DATA + MENU_MUSIC_SIZE);
     else

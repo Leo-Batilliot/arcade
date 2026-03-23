@@ -75,10 +75,11 @@ void SFMLDisplay::close()
 // ─── Audio ────────────────────────────────────────────────────────────────────
 void SFMLDisplay::playMusic(const unsigned char* data, unsigned int size, bool loop)
 {
-    if (_musicOpen && _music.has_value())
+    if (_musicOpen && _music.has_value()) {
         _music->stop();
-    _music.reset(); // always recreate to avoid corrupted-state crash on repeated loads
-    _musicOpen = false;
+        _musicOpen = false;
+    }
+    _music.reset();
     if (!_audioEnabled || size == 0)
         return;
     _music.emplace();
@@ -103,8 +104,11 @@ void SFMLDisplay::playSound(const unsigned char* data, unsigned int size)
 
 void SFMLDisplay::stopMusic()
 {
-    if (_musicOpen && _music.has_value())
+    if (_musicOpen && _music.has_value()) {
         _music->stop();
+        _music.reset();
+        _musicOpen = false;
+    }
 }
 
 void SFMLDisplay::setVolume(int percent)
