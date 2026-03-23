@@ -10,8 +10,15 @@ namespace Arcade {
 struct Point {
     int x = 0;
     int y = 0;
-    /// @brief Returns true when both coordinates are equal.
     bool operator==(const Point& other) const noexcept { return x == other.x && y == other.y; }
+};
+
+enum class Direction { UP, DOWN, LEFT, RIGHT };
+enum class FoodType  { APPLE, ORANGE };
+
+struct FoodItem {
+    Point    pos;
+    FoodType type;
 };
 
 /// @brief Classic Snake game module.
@@ -31,30 +38,31 @@ public:
     std::string getName()    const override { return "Snake"; }
 
 private:
-    enum class Direction { UP, DOWN, LEFT, RIGHT };
-
     static constexpr int GRID_WIDTH  = SnakeConfig::GRID_WIDTH;
     static constexpr int GRID_HEIGHT = SnakeConfig::GRID_HEIGHT;
 
     bool _gameOver = false;
     int  _score    = 0;
 
-    std::deque<Point> _snake;
-    Direction         _direction     = Direction::RIGHT;
-    Direction         _nextDirection = Direction::RIGHT;
-    Point             _food          = {};
+    std::deque<Point>  _snake;
+    Direction          _direction     = Direction::RIGHT;
+    Direction          _nextDirection = Direction::RIGHT;
+    std::vector<FoodItem> _foods;
 
+    float _elapsed = 0.f;
     float _stepTimer  = 0.f;
-    float _stepPeriod = SnakeConfig::INITIAL_STEP_PERIOD;
+    float _boostTimer = 0.f; ///< remaining seconds of orange speed boost
 
-    /// @brief Advances the snake by one cell in the current direction.
+    bool _movedThisStep   = false;
+    bool _ateFoodThisStep = false;
+    FoodType _ateFoodType;
+
     void step();
+    void spawnFood(FoodType type);
+    void renderSnake(std::vector<Cell>& cells);
 
-    /// @brief Places the food token on a random cell not occupied by the snake.
-    void spawnFood();
-
-    /// @brief Returns true if the given point overlaps any segment of the snake.
     bool isOnSnake(const Point& point) const noexcept;
+    bool isOnFood (const Point& point) const noexcept;
 };
 
 } // namespace Arcade

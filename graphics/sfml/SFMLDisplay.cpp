@@ -48,11 +48,18 @@ void SFMLDisplay::init(const std::string& title)
 
     _lastGrid = {};
     _lastRelX = _lastRelY = -1.f;
+    _audioEnabled = sf::PlaybackDevice::getDefaultDevice().has_value();
+    if (!_audioEnabled)
+        std::cerr << "[SFML] No audio playback device found — audio disabled.\n";
 }
 
 void SFMLDisplay::close()
 {
-    _music.stop();
+    if (_musicOpen && _music.has_value()) {
+        _music->stop();
+        _musicOpen = false;
+    }
+    _music.reset();
     if (_sound)
     {
         _sound->stop();
@@ -68,24 +75,25 @@ void SFMLDisplay::close()
 // ─── Audio ────────────────────────────────────────────────────────────────────
 void SFMLDisplay::playMusic(const unsigned char* data, unsigned int size, bool loop)
 {
-    _music.stop();
-    if (size == 0)
-    {
+    if (_musicOpen && _music.has_value())
+        _music->stop();
+    _music.reset(); // always recreate to avoid corrupted-state crash on repeated loads
+    _musicOpen = false;
+    if (!_audioEnabled || size == 0)
         return;
-    }
-    if (_music.openFromMemory(data, size))
+    _music.emplace();
+    if (_music->openFromMemory(data, size))
     {
-        _music.setLooping(loop);
-        _music.play();
+        _musicOpen = true;
+        _music->setLooping(loop);
+        _music->play();
     }
 }
 
 void SFMLDisplay::playSound(const unsigned char* data, unsigned int size)
 {
-    if (size == 0)
-    {
+    if (!_audioEnabled || size == 0)
         return;
-    }
     if (_soundBuffer.loadFromMemory(data, size))
     {
         _sound.emplace(_soundBuffer);
@@ -95,12 +103,14 @@ void SFMLDisplay::playSound(const unsigned char* data, unsigned int size)
 
 void SFMLDisplay::stopMusic()
 {
-    _music.stop();
+    if (_musicOpen && _music.has_value())
+        _music->stop();
 }
 
 void SFMLDisplay::setVolume(int percent)
 {
-    _music.setVolume(static_cast<float>(std::clamp(percent, 0, 100)));
+    if (_musicOpen && _music.has_value())
+        _music->setVolume(static_cast<float>(std::clamp(percent, 0, 100)));
 }
 
 void SFMLDisplay::clear()
@@ -282,17 +292,19 @@ void SFMLDisplay::drawGrid(const std::vector<Cell>& cells,
     const float areaW = (x2 - x1) * WIN_W;
     const float areaH = (y2 - y1) * WIN_H;
 
-    float cellSize = std::min(areaW / gridWidth, areaH / gridHeight);
-    cellSize = std::max(DisplayConfig::MIN_CELL_PX, cellSize);
+    float cellSize = std::min(areaW / (float)gridWidth, areaH / (float)gridHeight);
+    const bool needsCamera = (cellSize < DisplayConfig::MIN_CELL_PX);
+    if (needsCamera)
+        cellSize = DisplayConfig::MIN_CELL_PX;
 
-    const int viewWidth  = std::min(gridWidth,  (int)(areaW / cellSize));
-    const int viewHeight = std::min(gridHeight, (int)(areaH / cellSize));
+    const int viewWidth  = needsCamera ? std::min(gridWidth,  (int)(areaW / cellSize)) : gridWidth;
+    const int viewHeight = needsCamera ? std::min(gridHeight, (int)(areaH / cellSize)) : gridHeight;
 
     int cameraX = 0;
     int cameraY = 0;
-    if (focusX >= 0)
+    if (needsCamera && focusX >= 0)
         cameraX = std::clamp(focusX - viewWidth / 2, 0, std::max(0, gridWidth - viewWidth));
-    if (focusY >= 0)
+    if (needsCamera && focusY >= 0)
         cameraY = std::clamp(focusY - viewHeight / 2, 0, std::max(0, gridHeight - viewHeight));
 
     const int originX = (int)(x1 * WIN_W + (areaW - viewWidth  * cellSize) / 2.f);

@@ -15,7 +15,7 @@ namespace CoreConfig {
     constexpr int         MAX_SCORES_PER_GAME = 10;
 
     // ── Player name ───────────────────────────────────────────────────────────
-    constexpr int PLAYER_NAME_MAX_LEN = 20;
+    constexpr int PLAYER_NAME_MAX_LEN = 16;
 
     // ── Volume ────────────────────────────────────────────────────────────────
     constexpr int VOLUME_STEP = 10;
@@ -30,7 +30,7 @@ namespace CoreConfig {
     constexpr char  HUD_LINE_CHAR        = '-';
     constexpr float HUD_LINE_X_START     = 0.0f;
     constexpr float HUD_LINE_X_END       = 1.0f;
-    constexpr float HUD_LINE_Y           = 0.85f;
+    constexpr float HUD_LINE_Y           = 0.87f;
     constexpr Color HUD_LINE_COLOR       = Colors::DarkGray;
     constexpr Color HUD_LINE_BG_COLOR    = Colors::Black;
 
@@ -73,44 +73,57 @@ namespace MenuLayout {
     constexpr float TITLE_X     = 0.5f;
     constexpr float TITLE_Y     = 0.06f;
     constexpr Color TITLE_COLOR = Colors::Yellow;
-    constexpr float TITLE_SCALE = 1.8f;
+    constexpr float TITLE_SCALE = 2.0f;
+
+    // ── Menu separator line ────────────────────────────────────────────────────
+    constexpr char  MENU_LINE_CHAR        = '-';
+    constexpr float MENU_LINE_X_START     = 0.0f;
+    constexpr float MENU_LINE_X_END       = 1.0f;
+    constexpr float MENU_LINE_Y           = 0.10f;
+    constexpr Color MENU_LINE_COLOR       = Colors::DarkGray;
+    constexpr Color MENU_LINE_BG_COLOR    = Colors::Black;
 
     // Player name input (center, above scores)
-    constexpr float PLAYER_NAME_X     = 0.5f;
-    constexpr float PLAYER_NAME_Y     = 0.12f;
-    constexpr Color PLAYER_NAME_COLOR = Colors::Cyan;
-    constexpr float PLAYER_NAME_SCALE = 1.0f;
+    constexpr float PLAYER_NAME_X            = 0.5f;
+    constexpr float PLAYER_NAME_Y            = 0.15f;
+    constexpr Color PLAYER_NAME_COLOR        = Colors::DarkBlue;
+    constexpr Color PLAYER_NAME_HOVER_COLOR  = Colors::LightBlue;
+    constexpr Color PLAYER_NAME_ACTIVE_COLOR = Colors::LightBlue;
+    constexpr float PLAYER_NAME_SCALE        = 2.0f;
+    constexpr float PLAYER_NAME_ZONE_Y_HALF  = 0.03f;
+    constexpr char  PLAYER_NAME_CURSOR_CHAR  = '_';
+    constexpr float PLAYER_NAME_BLINK_PERIOD = 0.5f;
 
     // Left column — Games
-    constexpr float GAMES_HDR_X          = 0.22f;
-    constexpr float GAMES_HDR_Y          = 0.16f;
+    constexpr float GAMES_HDR_X          = 0.18f;
+    constexpr float GAMES_HDR_Y          = 0.20f;
     constexpr Color GAMES_HDR_COLOR      = Colors::White;
     constexpr float GAMES_HDR_SCALE      = 1.2f;
-    constexpr float GAMES_ITEM_X         = 0.22f;
-    constexpr float GAMES_START_Y        = 0.23f;
-    constexpr float GAMES_STEP_Y         = 0.062f;
+    constexpr float GAMES_ITEM_X         = 0.18f;
+    constexpr float GAMES_START_Y        = 0.25f;
+    constexpr float GAMES_STEP_Y         = 0.04f;
     constexpr Color GAMES_SELECTED_COLOR = Colors::Green;
     constexpr Color GAMES_COLOR          = Colors::Gray;
 
     // Center column — Scores
     constexpr float SCORES_HDR_X      = 0.5f;
-    constexpr float SCORES_HDR_Y      = 0.16f;
+    constexpr float SCORES_HDR_Y      = 0.22f;
     constexpr Color SCORES_HDR_COLOR  = Colors::White;
     constexpr float SCORES_HDR_SCALE  = 1.2f;
     constexpr float SCORES_ITEM_X     = 0.5f;
-    constexpr float SCORES_START_Y    = 0.23f;
-    constexpr float SCORES_STEP_Y     = 0.062f;
+    constexpr float SCORES_START_Y    = 0.27f;
+    constexpr float SCORES_STEP_Y     = 0.06f;
     constexpr Color SCORES_COLOR      = Colors::Yellow;
     constexpr Color SCORES_NAME_COLOR = Colors::Gray;
 
     // Right column — Graphics
-    constexpr float GFX_HDR_X          = 0.78f;
-    constexpr float GFX_HDR_Y          = 0.16f;
+    constexpr float GFX_HDR_X          = 0.82f;
+    constexpr float GFX_HDR_Y          = 0.20f;
     constexpr Color GFX_HDR_COLOR      = Colors::White;
     constexpr float GFX_HDR_SCALE      = 1.2f;
-    constexpr float GFX_ITEM_X         = 0.78f;
-    constexpr float GFX_START_Y        = 0.23f;
-    constexpr float GFX_STEP_Y         = 0.062f;
+    constexpr float GFX_ITEM_X         = 0.82f;
+    constexpr float GFX_START_Y        = 0.25f;
+    constexpr float GFX_STEP_Y         = 0.04f;
     constexpr Color GFX_SELECTED_COLOR = Colors::LightBlue;
     constexpr Color GFX_ACTIVE_COLOR   = Colors::Cyan;
     constexpr Color GFX_COLOR          = Colors::Gray;

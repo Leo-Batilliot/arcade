@@ -1,3 +1,6 @@
+include(${CMAKE_SOURCE_DIR}/cmake/ArcadeEmbed.cmake)
+arcade_embed_asset("assets/Losing.ogg")
+
 # ── Embed menumusic.ogg as a C++ byte array ───────────────────────────────────
 set(_MENU_MUSIC_SRC "${CMAKE_CURRENT_SOURCE_DIR}/assets/menumusic.ogg")
 set(_MENU_MUSIC_GEN "${CMAKE_CURRENT_BINARY_DIR}/MenuMusic.gen.cpp")
@@ -31,6 +34,7 @@ add_executable(arcade
     core/CoreGameOver.cpp
     core/CoreVolume.cpp
     "${_MENU_MUSIC_GEN}"
+    ${ARCADE_ASSET_SOURCES}
 )
 
 target_include_directories(arcade PRIVATE

@@ -67,6 +67,7 @@ namespace Colors {
     constexpr Color LightBlue = {100, 149, 237, 255};
     constexpr Color DarkRed   = {80,  0,   0,   255};
     constexpr Color DarkGreen = {0,   60,  0,   255};
+    constexpr Color DarkBlue  = {30,  55,  120, 255};
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

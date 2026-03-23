@@ -1,5 +1,7 @@
 #include "Core.hpp"
 #include <algorithm>
+#include <chrono>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -123,6 +125,7 @@ void Core::loadGame(int index)
     _destroyGame = _gameLoader->getSymbol<DestroyGameFn>("destroyGame");
     _game = create();
     _game->init();
+    _gameStartTime = std::chrono::steady_clock::now();
 
     const unsigned char* musicData = _game->getMusicData();
     const unsigned int   musicSize = _game->getMusicSize();
@@ -183,8 +186,18 @@ void Core::restartGame()
         return;
     _game->close();
     _game->init();
+    _gameStartTime = std::chrono::steady_clock::now();
     if (!_musicBuffer.empty())
         playCurrentMusic();
+}
+
+static std::string currentDate()
+{
+    const std::time_t t = std::time(nullptr);
+    const std::tm tm    = *std::localtime(&t);
+    char buf[11];
+    std::strftime(buf, sizeof(buf), "%d/%m/%Y", &tm);
+    return buf;
 }
 
 void Core::loadScores()
@@ -194,16 +207,26 @@ void Core::loadScores()
         return;
     std::string line;
     while (std::getline(file, line)) {
-        std::istringstream lineStream(line);
         std::string gameName;
         std::string playerName;
-        int score = 0;
-        if (lineStream >> gameName >> playerName >> score)
-            _scores[gameName].push_back({playerName, score});
+        std::string scoreStr;
+        std::string durationStr;
+        std::string date;
+        std::istringstream lineStream(line);
+        if (!std::getline(lineStream, gameName,    '|')) continue;
+        if (!std::getline(lineStream, playerName,  '|')) continue;
+        if (!std::getline(lineStream, scoreStr,    '|')) continue;
+        if (!std::getline(lineStream, durationStr, '|')) continue;
+        if (!std::getline(lineStream, date))              continue;
+        _scores[gameName].push_back({playerName, std::stoi(scoreStr),
+                                     std::stoi(durationStr), date});
     }
     for (auto& [gameName, entries] : _scores) {
         std::sort(entries.begin(), entries.end(),
-            [](const ScoreEntry& lhs, const ScoreEntry& rhs){ return lhs.score > rhs.score; });
+            [](const ScoreEntry& lhs, const ScoreEntry& rhs) {
+                if (lhs.score != rhs.score) return lhs.score > rhs.score;
+                return lhs.durationSeconds < rhs.durationSeconds;
+            });
         if (entries.size() > (std::size_t)CoreConfig::MAX_SCORES_PER_GAME)
             entries.resize(CoreConfig::MAX_SCORES_PER_GAME);
     }
@@ -215,17 +238,27 @@ void Core::saveScores()
     if (!file.is_open())
         return;
     for (const auto& [gameName, entries] : _scores) {
-        for (const auto& entry : entries)
-            file << gameName << " " << entry.playerName << " " << entry.score << "\n";
+        for (const auto& entry : entries) {
+            file << gameName << "|"
+                 << entry.playerName << "|"
+                 << entry.score << "|"
+                 << entry.durationSeconds << "|"
+                 << entry.date << "\n";
+        }
     }
 }
 
 void Core::updateScore(const std::string& gameName, int score)
 {
+    const int durationSeconds = (int)std::chrono::duration<float>(
+        std::chrono::steady_clock::now() - _gameStartTime).count();
     auto& entries = _scores[gameName];
-    entries.push_back({_playerName, score});
+    entries.push_back({_playerName, score, durationSeconds, currentDate()});
     std::sort(entries.begin(), entries.end(),
-        [](const ScoreEntry& lhs, const ScoreEntry& rhs){ return lhs.score > rhs.score; });
+        [](const ScoreEntry& lhs, const ScoreEntry& rhs) {
+            if (lhs.score != rhs.score) return lhs.score > rhs.score;
+            return lhs.durationSeconds < rhs.durationSeconds;
+        });
     if (entries.size() > (std::size_t)CoreConfig::MAX_SCORES_PER_GAME)
         entries.resize(CoreConfig::MAX_SCORES_PER_GAME);
     saveScores();
