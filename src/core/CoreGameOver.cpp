@@ -12,27 +12,28 @@ void Core::runGameOver()
 
         handleVolumeKeys(keys);
 
-        bool hasAction = false;
         for (const auto key : keys) {
-            if (key != Key::PLUS && key != Key::MINUS) {
-                hasAction = true;
-                break;
+            if (key == Key::PLUS || key == Key::MINUS)
+                continue;
+            if (key == Key::R) {
+                restartGame();
+                _gameStartTime = std::chrono::steady_clock::now();
+                _state = State::PLAYING;
+                return;
             }
-        }
-        if (!hasAction) {
-            for (const auto& mouseEvent : mouseEvents) {
-                if (mouseEvent.button != Key::NONE) {
-                    hasAction = true;
-                    break;
-                }
-            }
-        }
-
-        if (hasAction) {
             _state = State::MENU;
             unloadGame();
             startMenuMusic();
             return;
+        }
+
+        for (const auto& mouseEvent : mouseEvents) {
+            if (mouseEvent.button != Key::NONE) {
+                _state = State::MENU;
+                unloadGame();
+                startMenuMusic();
+                return;
+            }
         }
 
         renderGameOverScreen();
@@ -86,7 +87,7 @@ void Core::renderGameOverScreen()
                        GameOverLayout::SCORE_COLOR, nullptr,
                        GameOverLayout::SCORE_SCALE);
 
-    _display->drawText("Press any key to continue...",
+    _display->drawText("R: Restart   Any other key: Menu",
                        GameOverLayout::CONTINUE_X, GameOverLayout::CONTINUE_Y,
                        GameOverLayout::CONTINUE_COLOR, nullptr,
                        GameOverLayout::CONTINUE_SCALE);

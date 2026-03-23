@@ -2,6 +2,11 @@
 #include <chrono>
 
 namespace Arcade {
+    extern const unsigned char LOSING_OGG_DATA[];
+    extern const unsigned int  LOSING_OGG_SIZE;
+}
+
+namespace Arcade {
 
 void Core::runGame()
 {
@@ -72,6 +77,7 @@ void Core::runGame()
 
             if (_game->isGameOver() || _game->hasWon()) {
                 _display->stopMusic();
+                _display->playSound(LOSING_OGG_DATA, LOSING_OGG_SIZE);
                 updateScore(_gameLibs[_currentGame].name, _game->getScore());
                 _state = State::GAMEOVER;
                 return;

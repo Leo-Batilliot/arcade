@@ -3,6 +3,7 @@
 #include "DLLoader.hpp"
 #include "IDisplayModule.hpp"
 #include "IGameModule.hpp"
+#include <chrono>
 #include <map>
 #include <memory>
 #include <string>
@@ -33,11 +34,19 @@ private:
     bool  _running = true;
     int   _volume  = 100;
 
-    std::string _playerName = "Player";
+    std::string _playerName         = "Player";
+    std::chrono::steady_clock::time_point _gameStartTime;
+
+    bool        _nameInputActive    = false;
+    bool        _nameInputHovered   = false;
+    float       _cursorBlinkTimer   = 0.f;
+    bool        _cursorBlinkVisible = true;
 
     struct ScoreEntry {
         std::string playerName;
-        int score = 0;
+        int         score           = 0;
+        int         durationSeconds = 0;
+        std::string date;
     };
     std::map<std::string, std::vector<ScoreEntry>> _scores;
 

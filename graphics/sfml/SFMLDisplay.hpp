@@ -3,6 +3,7 @@
 #include "DisplayConfig.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
+#include <SFML/Audio/PlaybackDevice.hpp>
 #include <memory>
 #include <optional>
 #include <unordered_map>
@@ -89,7 +90,9 @@ private:
         int   cameraY = 0;
     } _lastGrid;
 
-    sf::Music                    _music;
+    bool                         _audioEnabled = false; ///< false when no playback device found
+    std::optional<sf::Music>     _music;               ///< recreated each load to avoid corrupted state
+    bool                         _musicOpen    = false;
     sf::SoundBuffer              _soundBuffer;
     std::optional<sf::Sound>     _sound;
 

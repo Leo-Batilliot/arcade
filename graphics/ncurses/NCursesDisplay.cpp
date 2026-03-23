@@ -1,5 +1,6 @@
 #include "NCursesDisplay.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <stdexcept>
@@ -239,8 +240,6 @@ chtype NCursesDisplay::cellAttr(const Color& fg, const Color& bg) noexcept
 
 chtype NCursesDisplay::scaleAttr(float scale) const noexcept
 {
-    if (scale >= 2.0f)
-        return A_BOLD | A_STANDOUT;
     if (scale >= 1.5f)
         return A_BOLD;
     if (scale <= 0.7f)
@@ -316,32 +315,31 @@ void NCursesDisplay::drawGrid(const std::vector<Cell>& cells,
     if (areaRows <= 0 || areaCols <= 0)
         return;
 
-    int charHeight = std::max(1, areaRows / gridHeight);
-    int charWidth  = std::min(charHeight * 2, NCursesConfig::MAX_CHARS_PER_CELL);
-    charHeight = std::max(1, charWidth / 2);
-    charWidth  = std::max(NCursesConfig::MIN_CHARS_PER_CELL, charWidth);
-    charHeight = std::max(1, charWidth / 2);
+    // Maximum char width that fits the entire grid without camera
+    int charWidth  = std::min(areaCols / std::max(1, gridWidth), NCursesConfig::MAX_CHARS_PER_CELL);
+    int charHeight = std::max(1, charWidth / 2);
 
-    while (charWidth > 1 && charWidth * gridWidth > areaCols)
-    {
-        charWidth--;
+    // Ensure the height also fits
+    while (charHeight > 1 && charHeight * gridHeight > areaRows) {
+        charHeight--;
+        charWidth = charHeight * 2;
+    }
+    charWidth = std::max(charWidth, 1);
+
+    const bool needsCamera = (charWidth < NCursesConfig::MIN_CHARS_PER_CELL);
+    if (needsCamera) {
+        charWidth  = NCursesConfig::MIN_CHARS_PER_CELL;
         charHeight = std::max(1, charWidth / 2);
     }
 
-    if (charWidth * gridWidth > areaCols)
-    {
-        charWidth  = std::max(1, areaCols / std::max(1, gridWidth));
-        charHeight = 1;
-    }
-
-    const int viewWidth  = std::min(gridWidth,  areaCols / std::max(1, charWidth));
-    const int viewHeight = std::min(gridHeight, areaRows / std::max(1, charHeight));
+    const int viewWidth  = needsCamera ? std::min(gridWidth,  areaCols / std::max(1, charWidth)) : gridWidth;
+    const int viewHeight = needsCamera ? std::min(gridHeight, areaRows / std::max(1, charHeight)) : gridHeight;
 
     int cameraX = 0;
     int cameraY = 0;
-    if (focusX >= 0)
+    if (needsCamera && focusX >= 0)
         cameraX = std::clamp(focusX - viewWidth  / 2, 0, std::max(0, gridWidth  - viewWidth));
-    if (focusY >= 0)
+    if (needsCamera && focusY >= 0)
         cameraY = std::clamp(focusY - viewHeight / 2, 0, std::max(0, gridHeight - viewHeight));
 
     const int originCol = bbCol1 + (areaCols - viewWidth  * charWidth)  / 2;
@@ -387,8 +385,8 @@ void NCursesDisplay::drawText(const std::string& text, float relX, float relY,
     if (!_isOpen || text.empty())
         return;
 
-    const int row = std::clamp((int)(relY * _terminalHeight), 0, _terminalHeight - 1);
-    const int col = (int)(relX * _terminalWidth) - (int)text.size() / 2;
+    const int row = std::clamp((int)std::lround(relY * _terminalHeight), 0, _terminalHeight - 1);
+    const int col = (int)std::lround(relX * _terminalWidth) - (int)text.size() / 2;
     const int safeCol = std::max(0, col);
     const int skip    = safeCol - col;
     const int maxLen  = _terminalWidth - safeCol;
@@ -410,9 +408,9 @@ void NCursesDisplay::drawLine(char c, float x1, float x2, float y,
     if (!_isOpen)
         return;
 
-    const int row  = std::clamp((int)(y  * _terminalHeight), 0, _terminalHeight - 1);
-    const int col1 = std::clamp((int)(x1 * _terminalWidth),  0, _terminalWidth);
-    const int col2 = std::clamp((int)(x2 * _terminalWidth),  0, _terminalWidth);
+    const int row  = std::clamp((int)std::lround(y  * _terminalHeight), 0, _terminalHeight - 1);
+    const int col1 = std::clamp((int)std::lround(x1 * _terminalWidth),  0, _terminalWidth);
+    const int col2 = std::clamp((int)std::lround(x2 * _terminalWidth),  0, _terminalWidth);
 
     if (col2 <= col1)
         return;
@@ -545,10 +543,10 @@ void NCursesDisplay::drawRect(float x1, float y1, float x2, float y2, const Colo
 {
     if (!_isOpen)
         return;
-    const int row1 = std::clamp((int)(y1 * _terminalHeight), 0, _terminalHeight);
-    const int row2 = std::clamp((int)(y2 * _terminalHeight), 0, _terminalHeight);
-    const int col1 = std::clamp((int)(x1 * _terminalWidth),  0, _terminalWidth);
-    const int col2 = std::clamp((int)(x2 * _terminalWidth),  0, _terminalWidth);
+    const int row1 = std::clamp((int)std::lround(y1 * _terminalHeight), 0, _terminalHeight);
+    const int row2 = std::clamp((int)std::lround(y2 * _terminalHeight), 0, _terminalHeight);
+    const int col1 = std::clamp((int)std::lround(x1 * _terminalWidth),  0, _terminalWidth);
+    const int col2 = std::clamp((int)std::lround(x2 * _terminalWidth),  0, _terminalWidth);
 
     if (col2 <= col1 || row2 <= row1)
         return;

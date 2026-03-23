@@ -1,17 +1,3 @@
-# ── Audio backend check ───────────────────────────────────────────────────────
-find_package(PkgConfig QUIET)
-if(PkgConfig_FOUND)
-    pkg_check_modules(PULSEAUDIO QUIET libpulse)
-    pkg_check_modules(ALSA       QUIET alsa)
-    if(NOT PULSEAUDIO_FOUND AND NOT ALSA_FOUND)
-        message(WARNING
-            "[arcade_sdl2] libpulse-dev / libasound2-dev not found — "
-            "SDL2 audio will be silent (dummy driver). "
-            "Install one then rebuild from scratch: "
-            "sudo apt install libpulse-dev")
-    endif()
-endif()
-
 # ── Always fetch SDL2 / SDL2_ttf / SDL2_mixer as static ───────────────────────
 set(CMAKE_POSITION_INDEPENDENT_CODE ON  CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS               OFF CACHE BOOL "" FORCE)
@@ -30,6 +16,7 @@ set(SDL_SHARED     OFF CACHE BOOL "" FORCE)
 set(SDL_STATIC     ON  CACHE BOOL "" FORCE)
 set(SDL_STATIC_PIC ON  CACHE BOOL "" FORCE)
 set(SDL_ALSA       OFF CACHE BOOL "" FORCE)
+set(SDL_PIPEWIRE   OFF CACHE BOOL "" FORCE)
 set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
 FetchContent_MakeAvailable(SDL2)
 set(CMAKE_MESSAGE_LOG_LEVEL STATUS)
@@ -69,7 +56,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${_SAVED_ARC_DIR}")
 # Restore shared libs for games / other targets processed after this
 set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
 
-# ── Download stb_image.h for image support ────────────────────────────────────
+# ── Download stb_image.h ───────────────────────────────────────────────────────
 set(_STB_IMAGE_H "${CMAKE_CURRENT_BINARY_DIR}/stb_image.h")
 if(NOT EXISTS "${_STB_IMAGE_H}")
     message(STATUS "[arcade_sdl2] Downloading stb_image.h ...")
@@ -79,80 +66,50 @@ if(NOT EXISTS "${_STB_IMAGE_H}")
         STATUS _stb_dl_status)
     list(GET _stb_dl_status 0 _stb_dl_code)
     if(NOT _stb_dl_code EQUAL 0)
-        message(WARNING "[arcade_sdl2] stb_image.h download failed — image support disabled")
-        set(_STB_IMAGE_H "")
+        message(FATAL_ERROR "[arcade_sdl2] stb_image.h download failed")
     endif()
 endif()
 
 # ── Embed Inter.ttf ───────────────────────────────────────────────────────────
 set(_ARCADE_FONT_SRC "${CMAKE_SOURCE_DIR}/graphics/assets/Inter.ttf")
-set(_ARCADE_FONT_GEN "${CMAKE_CURRENT_BINARY_DIR}/InterFont.gen.cpp")
-if(EXISTS "${_ARCADE_FONT_SRC}")
-    file(READ "${_ARCADE_FONT_SRC}" _FONT_BYTES_HEX HEX)
-    string(LENGTH "${_FONT_BYTES_HEX}" _FONT_HEX_LEN)
-    math(EXPR _FONT_BYTE_LEN "${_FONT_HEX_LEN} / 2")
-    string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," _FONT_BYTES_COMMA "${_FONT_BYTES_HEX}")
-    file(WRITE "${_ARCADE_FONT_GEN}"
-        "// Auto-generated — do not edit.\n"
-        "namespace Arcade {\n"
-        "extern const unsigned char INTER_FONT_DATA[] = {${_FONT_BYTES_COMMA}0x00};\n"
-        "extern const unsigned int  INTER_FONT_SIZE   = ${_FONT_BYTE_LEN}u;\n"
-        "} // namespace Arcade\n")
-else()
-    file(WRITE "${_ARCADE_FONT_GEN}"
-        "namespace Arcade {\n"
-        "extern const unsigned char INTER_FONT_DATA[] = {0x00};\n"
-        "extern const unsigned int  INTER_FONT_SIZE   = 0u;\n"
-        "} // namespace Arcade\n")
-    message(WARNING "[arcade_sdl2] graphics/assets/Inter.ttf not found — text rendering disabled")
+if(NOT EXISTS "${_ARCADE_FONT_SRC}")
+    message(FATAL_ERROR "[arcade_sdl2] graphics/assets/Inter.ttf not found")
 endif()
+set(_ARCADE_FONT_GEN "${CMAKE_CURRENT_BINARY_DIR}/InterFont.gen.cpp")
+file(READ "${_ARCADE_FONT_SRC}" _FONT_BYTES_HEX HEX)
+string(LENGTH "${_FONT_BYTES_HEX}" _FONT_HEX_LEN)
+math(EXPR _FONT_BYTE_LEN "${_FONT_HEX_LEN} / 2")
+string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," _FONT_BYTES_COMMA "${_FONT_BYTES_HEX}")
+file(WRITE "${_ARCADE_FONT_GEN}"
+    "// Auto-generated — do not edit.\n"
+    "namespace Arcade {\n"
+    "extern const unsigned char INTER_FONT_DATA[] = {${_FONT_BYTES_COMMA}0x00};\n"
+    "extern const unsigned int  INTER_FONT_SIZE   = ${_FONT_BYTE_LEN}u;\n"
+    "} // namespace Arcade\n")
 
 # ── Target ────────────────────────────────────────────────────────────────────
-if(_STB_IMAGE_H AND EXISTS "${_STB_IMAGE_H}")
-    add_library(arcade_sdl2 SHARED
-        SDL2Display.cpp
-        SDL2Image.cpp
-        "${_ARCADE_FONT_GEN}")
-    target_include_directories(arcade_sdl2 PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-    target_compile_definitions(arcade_sdl2 PRIVATE ARCADE_SDL2_IMAGES=1)
-else()
-    add_library(arcade_sdl2 SHARED SDL2Display.cpp "${_ARCADE_FONT_GEN}")
-endif()
+add_library(arcade_sdl2 SHARED
+    SDL2Display.cpp
+    SDL2Image.cpp
+    "${_ARCADE_FONT_GEN}")
 
 target_include_directories(arcade_sdl2 PRIVATE
-    ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/graphics ${CMAKE_CURRENT_SOURCE_DIR})
+    "${CMAKE_CURRENT_BINARY_DIR}"
+    "${CMAKE_SOURCE_DIR}/include"
+    "${CMAKE_SOURCE_DIR}/src"
+    "${CMAKE_SOURCE_DIR}/graphics"
+    "${CMAKE_CURRENT_SOURCE_DIR}")
+target_compile_definitions(arcade_sdl2 PRIVATE ARCADE_SDL2_IMAGES=1)
 target_compile_options(arcade_sdl2 PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter -fno-gnu-unique)
 
-# Link SDL2 static targets
-if(TARGET SDL2-static)
-    target_link_libraries(arcade_sdl2 PRIVATE SDL2-static)
-    if(sdl2_SOURCE_DIR)
-        target_include_directories(arcade_sdl2 PRIVATE "${sdl2_SOURCE_DIR}/include")
-    endif()
-elseif(TARGET SDL2::SDL2-static)
-    target_link_libraries(arcade_sdl2 PRIVATE SDL2::SDL2-static)
-else()
-    message(FATAL_ERROR "[arcade_sdl2] SDL2 static target not found after FetchContent")
-endif()
+target_link_libraries(arcade_sdl2 PRIVATE SDL2-static)
+target_include_directories(arcade_sdl2 PRIVATE "${sdl2_SOURCE_DIR}/include")
 
-if(TARGET SDL2_ttf::SDL2_ttf)
-    target_link_libraries(arcade_sdl2 PRIVATE SDL2_ttf::SDL2_ttf)
-elseif(TARGET SDL2_ttf)
-    target_link_libraries(arcade_sdl2 PRIVATE SDL2_ttf)
-    if(sdl2_ttf_SOURCE_DIR)
-        target_include_directories(arcade_sdl2 PRIVATE "${sdl2_ttf_SOURCE_DIR}")
-    endif()
-endif()
+target_link_libraries(arcade_sdl2 PRIVATE SDL2_ttf)
+target_include_directories(arcade_sdl2 PRIVATE "${sdl2_ttf_SOURCE_DIR}")
 
-if(TARGET SDL2_mixer::SDL2_mixer)
-    target_link_libraries(arcade_sdl2 PRIVATE SDL2_mixer::SDL2_mixer)
-elseif(TARGET SDL2_mixer)
-    target_link_libraries(arcade_sdl2 PRIVATE SDL2_mixer)
-    if(sdl2_mixer_SOURCE_DIR)
-        target_include_directories(arcade_sdl2 PRIVATE "${sdl2_mixer_SOURCE_DIR}/include")
-    endif()
-endif()
+target_link_libraries(arcade_sdl2 PRIVATE SDL2_mixer)
+target_include_directories(arcade_sdl2 PRIVATE "${sdl2_mixer_SOURCE_DIR}/include")
 
 set_target_properties(arcade_sdl2 PROPERTIES
     PREFIX "" OUTPUT_NAME "arcade_sdl2")

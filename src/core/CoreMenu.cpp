@@ -4,22 +4,57 @@
 #include <cctype>
 #include <thread>
 
+namespace {
+
+std::string formatDuration(int secs)
+{
+    if (secs < 60)
+        return std::to_string(secs) + "secs";
+    const int mins = secs / 60;
+    const int rem  = secs % 60;
+    if (rem == 0)
+        return std::to_string(mins) + "mins";
+    return std::to_string(mins) + "mins " + std::to_string(rem) + "secs";
+}
+
+} // namespace
+
 namespace Arcade {
 
 void Core::runMenu()
 {
+    auto lastTime = std::chrono::steady_clock::now();
+
     while (_state == State::MENU && _display && _display->isOpen()) {
-        const auto keys = _display->getKeys();
+        const auto now = std::chrono::steady_clock::now();
+        const float deltaTime = std::chrono::duration<float>(now - lastTime).count();
+        lastTime = now;
+
+        // ── Blink cursor ──────────────────────────────────────────────────────
+        if (_nameInputActive) {
+            _cursorBlinkTimer += deltaTime;
+            if (_cursorBlinkTimer >= MenuLayout::PLAYER_NAME_BLINK_PERIOD) {
+                _cursorBlinkTimer  -= MenuLayout::PLAYER_NAME_BLINK_PERIOD;
+                _cursorBlinkVisible = !_cursorBlinkVisible;
+            }
+        } else {
+            _cursorBlinkTimer   = 0.f;
+            _cursorBlinkVisible = true;
+        }
+
+        const auto keys        = _display->getKeys();
         const auto mouseEvents = _display->getMouseEvents();
         const std::string typed = _display->getTextInput();
 
         handleVolumeKeys(keys);
 
-        // Text input for player name — exclude +/- (volume-only keys)
-        for (char ch : typed) {
-            if (std::isprint((unsigned char)ch) && ch != '+' && ch != '-'
-                && _playerName.size() < CoreConfig::PLAYER_NAME_MAX_LEN)
-                _playerName += ch;
+        // Text input only when name field is active
+        if (_nameInputActive) {
+            for (char ch : typed) {
+                if (std::isprint((unsigned char)ch) && ch != '+' && ch != '-'
+                    && _playerName.size() < CoreConfig::PLAYER_NAME_MAX_LEN)
+                    _playerName += ch;
+            }
         }
 
         for (const auto key : keys) {
@@ -33,18 +68,24 @@ void Core::runMenu()
                 loadDisplay(_currentDisplay);
                 return;
             }
-            if (key == Key::UP)
-                _menuGameCursor = std::max(0, _menuGameCursor - 1);
-            if (key == Key::DOWN)
-                _menuGameCursor = std::min((int)_gameLibs.size() - 1, _menuGameCursor + 1);
-            if (key == Key::ENTER && !_gameLibs.empty()) {
-                _currentGame = _menuGameCursor;
-                loadGame(_currentGame);
-                _state = State::PLAYING;
-                return;
-            }
-            if (key == Key::BACKSPACE && !_playerName.empty())
+            if (key == Key::BACKSPACE && _nameInputActive && !_playerName.empty()) {
                 _playerName.pop_back();
+                continue;
+            }
+            if (key == Key::UP && !_nameInputActive)
+                _menuGameCursor = std::max(0, _menuGameCursor - 1);
+            if (key == Key::DOWN && !_nameInputActive)
+                _menuGameCursor = std::min((int)_gameLibs.size() - 1, _menuGameCursor + 1);
+            if (key == Key::ENTER) {
+                if (_nameInputActive) {
+                    _nameInputActive = false;
+                } else if (!_gameLibs.empty()) {
+                    _currentGame = _menuGameCursor;
+                    loadGame(_currentGame);
+                    _state = State::PLAYING;
+                    return;
+                }
+            }
         }
 
         for (const auto& mouseEvent : mouseEvents) {
@@ -67,6 +108,10 @@ void Core::handleMenuMouseHover()
 
     if (relativeX < 0.f)
         return;
+
+    // Player name field hover
+    _nameInputHovered =
+        std::abs(relativeY - MenuLayout::PLAYER_NAME_Y) < MenuLayout::PLAYER_NAME_ZONE_Y_HALF;
 
     // Left column: games
     if (relativeX < MenuLayout::LEFT_ZONE_BOUNDARY) {
@@ -96,6 +141,17 @@ void Core::handleMenuMouseHover()
 
 void Core::handleMenuMouseClick(float relativeX, float relativeY)
 {
+    // Player name field
+    if (std::abs(relativeY - MenuLayout::PLAYER_NAME_Y) < MenuLayout::PLAYER_NAME_ZONE_Y_HALF) {
+        _nameInputActive    = true;
+        _cursorBlinkTimer   = 0.f;
+        _cursorBlinkVisible = true;
+        return;
+    }
+
+    // Click elsewhere deactivates text input
+    _nameInputActive = false;
+
     // Left column: games
     if (relativeX < MenuLayout::LEFT_ZONE_BOUNDARY) {
         for (int i = 0; i < (int)_gameLibs.size(); ++i) {
@@ -148,11 +204,25 @@ void Core::renderMenu()
                        MenuLayout::TITLE_COLOR, nullptr,
                        MenuLayout::TITLE_SCALE);
 
+    // ── Menu Title Bar ────────────────────────────────────────────────────────
+    _display->drawLine(MenuLayout::MENU_LINE_CHAR,
+        MenuLayout::MENU_LINE_X_START, MenuLayout::MENU_LINE_X_END,
+        MenuLayout::MENU_LINE_Y,
+        MenuLayout::MENU_LINE_COLOR, MenuLayout::MENU_LINE_BG_COLOR);
+
     // ── Player name ───────────────────────────────────────────────────────────
-    _display->drawText("Player: " + _playerName + "_",
-                       MenuLayout::PLAYER_NAME_X, MenuLayout::PLAYER_NAME_Y,
-                       MenuLayout::PLAYER_NAME_COLOR, nullptr,
-                       MenuLayout::PLAYER_NAME_SCALE);
+    const Color nameColor = _nameInputActive
+        ? MenuLayout::PLAYER_NAME_ACTIVE_COLOR
+        : (_nameInputHovered ? MenuLayout::PLAYER_NAME_HOVER_COLOR : MenuLayout::PLAYER_NAME_COLOR);
+    const std::string cursor = (_nameInputActive && _cursorBlinkVisible)
+        ? std::string(1, MenuLayout::PLAYER_NAME_CURSOR_CHAR) : "";
+    
+    const std::string prefix = (cursor != "") ? " " : "";
+    const std::string textToDraw = prefix + "Enter name: " + _playerName + cursor;
+    _display->drawText(textToDraw,
+                        MenuLayout::PLAYER_NAME_X, MenuLayout::PLAYER_NAME_Y,
+                        nameColor, nullptr,
+                        MenuLayout::PLAYER_NAME_SCALE);
 
     // ── Left column: Games ────────────────────────────────────────────────────
     _display->drawText("[ GAMES ]",
@@ -184,10 +254,13 @@ void Core::renderMenu()
         if (it != _scores.end() && !it->second.empty()) {
             for (int i = 0; i < (int)it->second.size(); ++i) {
                 const float y = MenuLayout::SCORES_START_Y + i * MenuLayout::SCORES_STEP_Y;
+                const auto& e = it->second[i];
                 const std::string entry =
                     std::to_string(i + 1) + ". " +
-                    it->second[i].playerName + "  " +
-                    std::to_string(it->second[i].score);
+                    e.playerName + " - " +
+                    std::to_string(e.score) + " points - " +
+                    formatDuration(e.durationSeconds) + " - " +
+                    e.date;
                 _display->drawText(entry, MenuLayout::SCORES_ITEM_X, y,
                                    MenuLayout::SCORES_COLOR);
             }
@@ -217,7 +290,7 @@ void Core::renderMenu()
     }
 
     // ── Footer ────────────────────────────────────────────────────────────────
-    _display->drawText("ARROWS: Navigate   ENTER: Play   MOUSE: Click   Type: Name",
+    _display->drawText("ARROWS: Navigate   ENTER: Play   MOUSE: Click   Click name to type",
                        MenuLayout::FOOTER1_X, MenuLayout::FOOTER1_Y,
                        MenuLayout::FOOTER1_COLOR);
     _display->drawText("TAB: Change Graphics   ESC: Exit   +/-: Volume   BACKSPACE: Edit Name",

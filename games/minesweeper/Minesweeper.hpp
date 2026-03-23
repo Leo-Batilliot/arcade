@@ -5,7 +5,7 @@
 
 namespace Arcade {
 
-/// @brief Classic Minesweeper game module.
+/// @brief Classic Minesweeper game module with infinite escalating levels.
 class Minesweeper final : public IGameModule {
 public:
     void init()    override;
@@ -18,14 +18,11 @@ public:
     [[nodiscard]] unsigned int         getMusicSize() const override;
 
     bool        isGameOver() const override { return _gameOver; }
-    bool        hasWon()     const override { return _won; }
+    bool        hasWon()     const override { return false; }
     int         getScore()   const override { return _score; }
     std::string getName()    const override { return "Minesweeper"; }
 
 private:
-    static constexpr int   COLS      = MinesweeperConfig::COLS;
-    static constexpr int   ROWS      = MinesweeperConfig::ROWS;
-    static constexpr int   MINES     = MinesweeperConfig::MINES;
     static constexpr float KEY_DELAY = MinesweeperConfig::KEY_DELAY;
 
     struct BoardCell {
@@ -35,23 +32,45 @@ private:
         int  adjacent = 0;
     };
 
-    bool  _gameOver  = false;
-    bool  _won       = false;
-    bool  _started   = false;
-    int   _score     = 0;
-    float _elapsed   = 0.f;
-    float _keyTimer  = 0.f;
+    // Dynamic grid dimensions (grow each level)
+    int _cols  = MinesweeperConfig::INITIAL_SIZE;
+    int _rows  = MinesweeperConfig::INITIAL_SIZE;
+    int _mines = 0;
+    int _level = 1;
 
-    int _currentX = COLS / 2;
-    int _currentY = ROWS / 2;
+    bool  _gameOver = false;
+    bool  _started  = false;
+    int   _score    = 0;
+    float _elapsed  = 0.f;
+    float _keyTimer = 0.f;
+
+    int _currentX = 0;
+    int _currentY = 0;
 
     std::vector<std::vector<BoardCell>> _board;
 
-    /// @brief Distributes mines randomly; safeX/safeY and their neighbours are guaranteed mine-free.
+    // Sound triggers — set during update/event, consumed in render
+    bool _soundFlag      = false;
+    bool _soundSafe      = false;
+    bool _soundBomb      = false;
+    bool _soundNextLevel = false;
+
+    /// @brief Computes mine count for given grid size.
+    static int minesForSize(int cols, int rows) noexcept;
+
+    /// @brief Computes the next odd grid side length after applying growth factor.
+    static int nextOddSize(int current) noexcept;
+
+    /// @brief Initialises the board for the current _cols/_rows/_mines without resetting score/level.
+    void initBoard();
+
     void  placeMines(int safeX, int safeY);
     void  computeAdjacent();
+
     /// @brief Recursively reveals blank neighbours (flood-fill) when adjacent count is 0.
-    void  reveal(int x, int y);
+    /// @return true if a safe cell was newly revealed (for sound purposes).
+    bool  reveal(int x, int y);
+
     void  checkWin();
     int   flagCount() const noexcept;
     static Color adjacentColor(unsigned char count) noexcept;
