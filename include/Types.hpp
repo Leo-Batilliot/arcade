@@ -73,6 +73,16 @@ namespace Colors {
 // Rendering primitives
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// @brief Visual style for a drawGrid() call — supplied by the game, applied by the display.
+///
+/// Lets each game independently control the look of its grid without touching
+/// any display-backend configuration.
+struct GridStyle {
+    Color backgroundColor = {20,  20,  20,  255}; ///< Fill behind the entire grid area.
+    float borderPx        = 12.f;                  ///< Padding between the bounding box and the first cell.
+    Color highlightColor  = {255, 255, 255, 60};   ///< Semi-transparent overlay on highlighted cells.
+};
+
 /// One cell in a game grid — character, foreground and background color.
 struct Cell {
     char  c       = ' ';             ///< Character to display (space = empty/bg-only)

@@ -5,40 +5,16 @@ namespace Arcade {
 namespace DisplayConfig {
 
     // ── Window ────────────────────────────────────────────────────────────────
-    constexpr int   WIN_W = 1920;
-    constexpr int   WIN_H = 1080;
-
-    // ── Game zone: center position (fraction of screen) ───────────────────────
-    constexpr float GAME_ZONE_CENTER_X     = 0.50f;
-    constexpr float GAME_ZONE_CENTER_Y     = 0.45f;
-
-    // ── Game zone: size (fraction of screen) ──────────────────────────────────
-    constexpr float GAME_ZONE_WIDTH_RATIO  = 1.00f;
-    constexpr float GAME_ZONE_HEIGHT_RATIO = 0.60f;
+    constexpr int WIN_W = 1920;
+    constexpr int WIN_H = 1080;
 
     // ── Minimum cell size (pixel-based backends) ──────────────────────────────
+    // The display enforces this floor so cells never become unreadably tiny
+    // regardless of grid size.  Games cannot go below this physical limit.
     constexpr float MIN_CELL_PX = 12.f;
 
     // ── Base font size for pixel backends (used as multiplier base) ───────────
     constexpr int BASE_FONT_SIZE = 20;
-
-    // ── Grid background: border padding and fill color ────────────────────────
-    constexpr float GRID_BORDER_PX      = 12.f;
-    constexpr int   GRID_BG_R           = 20;
-    constexpr int   GRID_BG_G           = 20;
-    constexpr int   GRID_BG_B           = 20;
-
-    // ── Cell highlight overlay (semi-transparent white) ───────────────────────
-    constexpr int HIGHLIGHT_R = 255;
-    constexpr int HIGHLIGHT_G = 255;
-    constexpr int HIGHLIGHT_B = 255;
-    constexpr int HIGHLIGHT_A = 60;
-
-    // ── Derived game zone bounds (ratios — no pixels) ─────────────────────────
-    constexpr float GAME_ZONE_X1 = GAME_ZONE_CENTER_X - GAME_ZONE_WIDTH_RATIO  / 2.f; // 0.00
-    constexpr float GAME_ZONE_Y1 = GAME_ZONE_CENTER_Y - GAME_ZONE_HEIGHT_RATIO / 2.f; // 0.15
-    constexpr float GAME_ZONE_X2 = GAME_ZONE_CENTER_X + GAME_ZONE_WIDTH_RATIO  / 2.f; // 1.00
-    constexpr float GAME_ZONE_Y2 = GAME_ZONE_CENTER_Y + GAME_ZONE_HEIGHT_RATIO / 2.f; // 0.75
 
 } // namespace DisplayConfig
 

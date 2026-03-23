@@ -39,7 +39,8 @@ public:
 
     void drawGrid(const std::vector<Cell>& cells, int gridWidth, int gridHeight,
                   float x1, float y1, float x2, float y2,
-                  int focusX = -1, int focusY = -1) override;
+                  int focusX = -1, int focusY = -1,
+                  const GridStyle& style = {}) override;
     void drawText(const std::string& text, float relativeX, float relativeY,
                   const Color& fg, const Color* bg = nullptr,
                   float scale = 1.0f) override;

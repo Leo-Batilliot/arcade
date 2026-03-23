@@ -1,6 +1,5 @@
 #include "Snake.hpp"
 #include "IDisplayModule.hpp"
-#include "DisplayConfig.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
@@ -127,6 +126,11 @@ void Snake::render(IDisplayModule& display)
 {
     std::vector<Cell> cells(GRID_WIDTH * GRID_HEIGHT);
 
+    display.drawText("SNAKE",
+                     SnakeLayout::TITLE_X, SnakeLayout::TITLE_Y,
+                     SnakeLayout::TITLE_COLOR, nullptr,
+                     SnakeLayout::TITLE_SCALE);
+
     for (int y = 0; y < GRID_HEIGHT; ++y) {
         for (int x = 0; x < GRID_WIDTH; ++x) {
             const Color background = ((x + y) % 2 == 0)
@@ -194,9 +198,10 @@ void Snake::render(IDisplayModule& display)
     const int focusX = _snake.empty() ? -1 : _snake.front().x;
     const int focusY = _snake.empty() ? -1 : _snake.front().y;
     display.drawGrid(cells, GRID_WIDTH, GRID_HEIGHT,
-                     DisplayConfig::GAME_ZONE_X1, DisplayConfig::GAME_ZONE_Y1,
-                     DisplayConfig::GAME_ZONE_X2, DisplayConfig::GAME_ZONE_Y2,
-                     focusX, focusY);
+                     SnakeConfig::ZONE_X1, SnakeConfig::ZONE_Y1,
+                     SnakeConfig::ZONE_X2, SnakeConfig::ZONE_Y2,
+                     focusX, focusY,
+                     SnakeConfig::GRID_STYLE);
 }
 
 } // namespace Arcade

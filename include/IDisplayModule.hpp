@@ -54,12 +54,16 @@ public:
 
     // ── Rendering ─────────────────────────────────────────────────────────────
 
-    /// @brief Draw an entire game grid; bounding box, focus cell, and sizing constants are defined in DisplayConfig.
+    /// @brief Draw an entire game grid.
+    ///
+    /// All visual parameters (zone, background, highlight) are provided by the
+    /// caller — the display backend makes no aesthetic decisions.
     virtual void drawGrid(
         const std::vector<Cell>& cells,
         int gridWidth, int gridHeight,
         float x1, float y1, float x2, float y2,
-        int focusX = -1, int focusY = -1) = 0;
+        int focusX = -1, int focusY = -1,
+        const GridStyle& style = {}) = 0;
 
     /// @brief Draw text centred on a screen-ratio position; scale multiplies the backend base font size.
     virtual void drawText(

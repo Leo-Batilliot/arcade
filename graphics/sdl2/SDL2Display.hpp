@@ -57,7 +57,8 @@ public:
 
     void drawGrid(const std::vector<Cell>& cells, int gridWidth, int gridHeight,
                   float x1, float y1, float x2, float y2,
-                  int focusX = -1, int focusY = -1) override;
+                  int focusX = -1, int focusY = -1,
+                  const GridStyle& style = {}) override;
     void drawText(const std::string& text, float relativeX, float relativeY,
                   const Color& fg, const Color* bg = nullptr,
                   float scale = 1.0f) override;
@@ -98,20 +99,20 @@ private:
     std::string _textInput;
 
     struct GridState {
-        int   gridWidth = 0;
+        int   gridWidth  = 0;
         int   gridHeight = 0;
-        float cellSize = 0.f;
-        int   originX = 0;
-        int   originY = 0;
-        int   viewWidth = 0;
+        float cellSize   = 0.f;
+        int   originX    = 0;
+        int   originY    = 0;
+        int   viewWidth  = 0;
         int   viewHeight = 0;
-        int   cameraX = 0;
-        int   cameraY = 0;
+        int   cameraX    = 0;
+        int   cameraY    = 0;
     } _lastGrid;
 
 #ifdef ARCADE_SDL2_MIXER
-    Mix_Music* _music  = nullptr;
-    Mix_Chunk* _chunk  = nullptr;
+    Mix_Music* _music     = nullptr;
+    Mix_Chunk* _chunk     = nullptr;
     bool       _mixerOpen = false;
 #endif
 

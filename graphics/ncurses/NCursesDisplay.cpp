@@ -300,7 +300,8 @@ void NCursesDisplay::drawBlock(int row, int col, int numRows, int numCols,
 void NCursesDisplay::drawGrid(const std::vector<Cell>& cells,
                                int gridWidth, int gridHeight,
                                float x1, float y1, float x2, float y2,
-                               int focusX, int focusY)
+                               int focusX, int focusY,
+                               const GridStyle& style)
 {
     if (!_isOpen || gridWidth <= 0 || gridHeight <= 0 || cells.empty())
         return;
@@ -350,8 +351,7 @@ void NCursesDisplay::drawGrid(const std::vector<Cell>& cells,
 
     if (_has256Colors)
     {
-        const Color darkBg{20, 20, 20, 255};
-        const chtype bgAttr = COLOR_PAIR(getOrCreatePair(COLOR_WHITE, rgbTo256(darkBg)));
+        const chtype bgAttr = COLOR_PAIR(getOrCreatePair(COLOR_WHITE, rgbTo256(style.backgroundColor)));
         for (int r = bbRow1; r < bbRow2; ++r)
         {
             attron(bgAttr);

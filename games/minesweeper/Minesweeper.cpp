@@ -1,6 +1,5 @@
 #include "Minesweeper.hpp"
 #include "IDisplayModule.hpp"
-#include "DisplayConfig.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
@@ -285,9 +284,10 @@ void Minesweeper::render(IDisplayModule& display)
     }
 
     display.drawGrid(cells, COLS, ROWS,
-                     DisplayConfig::GAME_ZONE_X1, DisplayConfig::GAME_ZONE_Y1,
-                     DisplayConfig::GAME_ZONE_X2, DisplayConfig::GAME_ZONE_Y2,
-                     _currentX, _currentY);
+                     MinesweeperConfig::ZONE_X1, MinesweeperConfig::ZONE_Y1,
+                     MinesweeperConfig::ZONE_X2, MinesweeperConfig::ZONE_Y2,
+                     _currentX, _currentY,
+                     MinesweeperConfig::GRID_STYLE);
 
     display.drawText("ENTER:Reveal  SPC:Flag  R:Reset",
                      MinesweeperLayout::CONTROLS_X, MinesweeperLayout::CONTROLS_Y,

@@ -209,13 +209,13 @@ void SDL2Display::fillMouseEvent(MouseEvent& mouseEvent, int pixelX, int pixelY)
     if (_lastGrid.gridWidth > 0 && _lastGrid.cellSize > 0.f) {
         const float localX = (float)(pixelX - _lastGrid.originX);
         const float localY = (float)(pixelY - _lastGrid.originY);
-        const int cellViewX = (int)(localX / _lastGrid.cellSize);
-        const int cellViewY = (int)(localY / _lastGrid.cellSize);
+        const int viewX = (int)(localX / _lastGrid.cellSize);
+        const int viewY = (int)(localY / _lastGrid.cellSize);
 
-        if (cellViewX >= 0 && cellViewX < _lastGrid.viewWidth &&
-            cellViewY >= 0 && cellViewY < _lastGrid.viewHeight) {
-            mouseEvent.gridX = _lastGrid.cameraX + cellViewX;
-            mouseEvent.gridY = _lastGrid.cameraY + cellViewY;
+        if (viewX >= 0 && viewX < _lastGrid.viewWidth &&
+            viewY >= 0 && viewY < _lastGrid.viewHeight) {
+            mouseEvent.gridX = _lastGrid.cameraX + viewX;
+            mouseEvent.gridY = _lastGrid.cameraY + viewY;
         }
     }
 }
@@ -342,7 +342,8 @@ std::string SDL2Display::getTextInput()
 void SDL2Display::drawGrid(const std::vector<Cell>& cells,
                             int gridWidth, int gridHeight,
                             float x1, float y1, float x2, float y2,
-                            int focusX, int focusY)
+                            int focusX, int focusY,
+                            const GridStyle& style)
 {
     if (!_renderer || gridWidth <= 0 || gridHeight <= 0 || cells.empty())
         return;
@@ -353,7 +354,7 @@ void SDL2Display::drawGrid(const std::vector<Cell>& cells,
     float cellSize = std::min(areaW / gridWidth, areaH / gridHeight);
     cellSize = std::max(DisplayConfig::MIN_CELL_PX, cellSize);
 
-    const int viewWidth = std::min(gridWidth, (int)(areaW / cellSize));
+    const int viewWidth  = std::min(gridWidth,  (int)(areaW / cellSize));
     const int viewHeight = std::min(gridHeight, (int)(areaH / cellSize));
 
     int cameraX = 0;
@@ -369,15 +370,18 @@ void SDL2Display::drawGrid(const std::vector<Cell>& cells,
     _lastGrid = { gridWidth, gridHeight, cellSize, originX, originY, viewWidth, viewHeight, cameraX, cameraY };
 
     // Dark background
-    constexpr int border = (int)DisplayConfig::GRID_BORDER_PX;
-    SDL_Rect bgRect = {
+    const int border = (int)style.borderPx;
+    SDL_Rect backgroundRect = {
         (int)(x1 * WIN_W) - border,
         (int)(y1 * WIN_H) - border,
         (int)areaW + 2 * border,
         (int)areaH + 2 * border
     };
-    SDL_SetRenderDrawColor(_renderer, DisplayConfig::GRID_BG_R, DisplayConfig::GRID_BG_G, DisplayConfig::GRID_BG_B, 255);
-    SDL_RenderFillRect(_renderer, &bgRect);
+    SDL_SetRenderDrawColor(_renderer,
+        style.backgroundColor.r,
+        style.backgroundColor.g,
+        style.backgroundColor.b, 255);
+    SDL_RenderFillRect(_renderer, &backgroundRect);
 
     TTF_Font* cellFont = getCachedFont(std::max(8, (int)(cellSize * 0.75f)));
 
@@ -393,10 +397,10 @@ void SDL2Display::drawGrid(const std::vector<Cell>& cells,
 
             const int px = originX + (int)(viewX * cellSize);
             const int py = originY + (int)(viewY * cellSize);
-            const int cellWidth = originX + (int)((viewX+1) * cellSize) - px;
-            const int cellHeight = originY + (int)((viewY+1) * cellSize) - py;
+            const int cellWidth  = originX + (int)((viewX + 1) * cellSize) - px;
+            const int cellHeight = originY + (int)((viewY + 1) * cellSize) - py;
 
-            SDL_Rect r = {px, py, cellWidth, cellHeight};
+            SDL_Rect cellRect = {px, py, cellWidth, cellHeight};
 
 #ifdef ARCADE_SDL2_IMAGES
             if (cell.imageData && cell.imageSize > 0) {
@@ -404,14 +408,18 @@ void SDL2Display::drawGrid(const std::vector<Cell>& cells,
                 if (imgTex) {
                     SDL_SetRenderDrawColor(_renderer,
                         cell.bgImage.r, cell.bgImage.g, cell.bgImage.b, 255);
-                    SDL_RenderFillRect(_renderer, &r);
+                    SDL_RenderFillRect(_renderer, &cellRect);
                     SDL_RendererFlip flip = cell.imageFlipX ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-                    SDL_RenderCopyEx(_renderer, imgTex, nullptr, &r,
+                    SDL_RenderCopyEx(_renderer, imgTex, nullptr, &cellRect,
                                      (double)cell.imageAngle, nullptr, flip);
                     if (cell.highlight) {
                         SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
-                        SDL_SetRenderDrawColor(_renderer, DisplayConfig::HIGHLIGHT_R, DisplayConfig::HIGHLIGHT_G, DisplayConfig::HIGHLIGHT_B, DisplayConfig::HIGHLIGHT_A);
-                        SDL_RenderFillRect(_renderer, &r);
+                        SDL_SetRenderDrawColor(_renderer,
+                            style.highlightColor.r,
+                            style.highlightColor.g,
+                            style.highlightColor.b,
+                            style.highlightColor.a);
+                        SDL_RenderFillRect(_renderer, &cellRect);
                         SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_NONE);
                     }
                     continue;
@@ -420,7 +428,7 @@ void SDL2Display::drawGrid(const std::vector<Cell>& cells,
 #endif
 
             SDL_SetRenderDrawColor(_renderer, cell.bg.r, cell.bg.g, cell.bg.b, 255);
-            SDL_RenderFillRect(_renderer, &r);
+            SDL_RenderFillRect(_renderer, &cellRect);
 
             if (cell.c != ' ' && cellFont) {
                 const char str[2] = {cell.c, '\0'};
@@ -430,9 +438,9 @@ void SDL2Display::drawGrid(const std::vector<Cell>& cells,
                 if (surf) {
                     SDL_Texture* tex = SDL_CreateTextureFromSurface(_renderer, surf);
                     if (tex) {
-                        int textWidth = surf->w;
+                        int textWidth  = surf->w;
                         int textHeight = surf->h;
-                        SDL_Rect dst = {px + (cellWidth - textWidth)/2, py + (cellHeight - textHeight)/2, textWidth, textHeight};
+                        SDL_Rect dst = {px + (cellWidth - textWidth) / 2, py + (cellHeight - textHeight) / 2, textWidth, textHeight};
                         SDL_RenderCopy(_renderer, tex, nullptr, &dst);
                         SDL_DestroyTexture(tex);
                     }
@@ -442,8 +450,12 @@ void SDL2Display::drawGrid(const std::vector<Cell>& cells,
 
             if (cell.highlight) {
                 SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
-                SDL_SetRenderDrawColor(_renderer, DisplayConfig::HIGHLIGHT_R, DisplayConfig::HIGHLIGHT_G, DisplayConfig::HIGHLIGHT_B, DisplayConfig::HIGHLIGHT_A);
-                SDL_RenderFillRect(_renderer, &r);
+                SDL_SetRenderDrawColor(_renderer,
+                    style.highlightColor.r,
+                    style.highlightColor.g,
+                    style.highlightColor.b,
+                    style.highlightColor.a);
+                SDL_RenderFillRect(_renderer, &cellRect);
                 SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_NONE);
             }
         }
@@ -468,12 +480,12 @@ void SDL2Display::drawText(const std::string& text, float relativeX, float relat
 
     SDL_Texture* tex = SDL_CreateTextureFromSurface(_renderer, surf);
     if (tex) {
-        int textWidth = surf->w;
+        int textWidth  = surf->w;
         int textHeight = surf->h;
         const int centerX = (int)(relativeX * WIN_W);
         const int centerY = (int)(relativeY * WIN_H);
-        SDL_Rect dst = {centerX - textWidth/2, centerY - textHeight/2, textWidth, textHeight};
-        SDL_RenderCopy(_renderer, tex, nullptr, &dst);
+        SDL_Rect textRect = {centerX - textWidth / 2, centerY - textHeight / 2, textWidth, textHeight};
+        SDL_RenderCopy(_renderer, tex, nullptr, &textRect);
         SDL_DestroyTexture(tex);
     }
     SDL_FreeSurface(surf);

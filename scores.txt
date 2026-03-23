@@ -1,5 +1,7 @@
 Minesweeper PIPI 710
 Snake PIPI 120
+minesweeper Player 630
+minesweeper Player 610
 minesweeper Player 610
 minesweeper Player 600
 minesweeper Player 590
@@ -8,8 +10,6 @@ minesweeper Player 580
 minesweeper Player 570
 minesweeper PipI 560
 minesweeper Player 560
-minesweeper Player 540
-minesweeper Player 530
 snake Player 360
 snake Player 160
 snake Player 160

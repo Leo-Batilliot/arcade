@@ -40,7 +40,8 @@ public:
 
     void drawGrid(const std::vector<Cell>& cells, int gridWidth, int gridHeight,
                   float x1, float y1, float x2, float y2,
-                  int focusX = -1, int focusY = -1) override;
+                  int focusX = -1, int focusY = -1,
+                  const GridStyle& style = {}) override;
     /// @brief scale maps to ncurses attributes: >=2.0 bold+standout, >=1.5 bold, <=0.7 dim.
     void drawText(const std::string& text, float relX, float relY,
                   const Color& fg, const Color* bg = nullptr,

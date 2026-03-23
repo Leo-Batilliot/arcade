@@ -271,7 +271,8 @@ void SFMLDisplay::clearImageCache()
 void SFMLDisplay::drawGrid(const std::vector<Cell>& cells,
                             int gridWidth, int gridHeight,
                             float x1, float y1, float x2, float y2,
-                            int focusX, int focusY)
+                            int focusX, int focusY,
+                            const GridStyle& style)
 {
     if (!_window || gridWidth <= 0 || gridHeight <= 0 || cells.empty())
     {
@@ -300,10 +301,10 @@ void SFMLDisplay::drawGrid(const std::vector<Cell>& cells,
     _lastGrid = { gridWidth, gridHeight, cellSize, originX, originY, viewWidth, viewHeight, cameraX, cameraY };
 
     // Dark background
-    constexpr float border = DisplayConfig::GRID_BORDER_PX;
+    const float border = style.borderPx;
     sf::RectangleShape bg({areaW + 2.f*border, areaH + 2.f*border});
     bg.setPosition({x1*WIN_W - border, y1*WIN_H - border});
-    bg.setFillColor(sf::Color(DisplayConfig::GRID_BG_R, DisplayConfig::GRID_BG_G, DisplayConfig::GRID_BG_B));
+    bg.setFillColor(toSFML(style.backgroundColor));
     _window->draw(bg);
 
     const unsigned fontSize = (unsigned)std::max(8, (int)(cellSize * 0.75f));
@@ -345,7 +346,7 @@ void SFMLDisplay::drawGrid(const std::vector<Cell>& cells,
                     if (cell.highlight) {
                         sf::RectangleShape hl({cellWidth, cellHeight});
                         hl.setPosition({px, py});
-                        hl.setFillColor(sf::Color(DisplayConfig::HIGHLIGHT_R, DisplayConfig::HIGHLIGHT_G, DisplayConfig::HIGHLIGHT_B, DisplayConfig::HIGHLIGHT_A));
+                        hl.setFillColor(toSFML(style.highlightColor));
                         _window->draw(hl);
                     }
                     continue;
@@ -371,7 +372,7 @@ void SFMLDisplay::drawGrid(const std::vector<Cell>& cells,
             if (cell.highlight) {
                 sf::RectangleShape hl({cellWidth, cellHeight});
                 hl.setPosition({px, py});
-                hl.setFillColor(sf::Color(DisplayConfig::HIGHLIGHT_R, DisplayConfig::HIGHLIGHT_G, DisplayConfig::HIGHLIGHT_B, DisplayConfig::HIGHLIGHT_A));
+                hl.setFillColor(toSFML(style.highlightColor));
                 _window->draw(hl);
             }
         }
