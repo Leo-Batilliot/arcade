@@ -52,11 +52,10 @@ void Core::renderGameOverScreen()
     if (_game)
         _game->render(*_display);
 
-    const bool won = _game && _game->hasWon();
     const int score = _game ? _game->getScore() : 0;
     const std::string gameName = _game ? _game->getName() : "?";
-    const Color boxColor = won ? GameOverLayout::BOX_WON_COLOR
-                               : GameOverLayout::BOX_LOST_COLOR;
+    const Color boxColor = _isNewRecord ? GameOverLayout::BOX_RECORD_COLOR
+                                        : GameOverLayout::BOX_LOST_COLOR;
 
     // Semi-transparent dark overlay behind the game-over box
     _display->drawRect(GameOverLayout::BOX_LINE_X1, GameOverLayout::BOX_TOP_LINE_Y,
@@ -72,17 +71,17 @@ void Core::renderGameOverScreen()
                        GameOverLayout::BOX_BOT_LINE_Y,
                        boxColor, Colors::Black);
 
-    _display->drawText(won ? "CONGRATULATIONS!" : "GAME  OVER",
+    _display->drawText(_isNewRecord ? "NEW  RECORD !" : "GAME  OVER",
                        GameOverLayout::TITLE_X, GameOverLayout::TITLE_Y,
                        boxColor, nullptr,
                        GameOverLayout::TITLE_SCALE);
 
-    _display->drawText(gameName,
+    _display->drawText(_isNewRecord ? "Congratulations  " + gameName + "  !" : gameName,
                        GameOverLayout::GAME_NAME_X, GameOverLayout::GAME_NAME_Y,
-                       GameOverLayout::GAME_NAME_COLOR, nullptr,
+                       _isNewRecord ? boxColor : GameOverLayout::GAME_NAME_COLOR, nullptr,
                        GameOverLayout::GAME_NAME_SCALE);
 
-    _display->drawText("Score : " + std::to_string(score),
+    _display->drawText((_isNewRecord ? "Best score : " : "Score : ") + std::to_string(score),
                        GameOverLayout::SCORE_X, GameOverLayout::SCORE_Y,
                        GameOverLayout::SCORE_COLOR, nullptr,
                        GameOverLayout::SCORE_SCALE);

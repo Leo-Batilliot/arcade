@@ -27,6 +27,10 @@ namespace NCursesConfig {
     constexpr int MAX_CHARS_PER_CELL      = 20;
     constexpr int MIN_CHARS_PER_CELL      = 2;
     constexpr int RESERVED_COLOR_PAIRS    = 8;
+    /// How long (ms) after a key event a key is considered still held.
+    /// Must be comfortably above OS key-repeat interval (~30ms) so the
+    /// window doesn't expire between repeat ticks.
+    constexpr int HELD_KEY_TIMEOUT_MS     = 100;
 
 } // namespace NCursesConfig
 

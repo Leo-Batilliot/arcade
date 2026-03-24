@@ -97,6 +97,7 @@ void NCursesDisplay::init(const std::string& /*title*/)
     set_escdelay(NCursesConfig::ESCAPE_DELAY_MS);
 
     initscr();
+    flushinp(); // discard any stale mouse/key input accumulated while another lib was active
 
     if (has_colors())
     {
@@ -159,6 +160,7 @@ void NCursesDisplay::close()
         // Disable xterm mouse movement reporting before restoring terminal
         printf("\033[?1003l");
         fflush(stdout);
+        flushinp(); // discard queued mouse escape sequences before restoring terminal
         endwin();   // saves & restores shell mode internally — no extra call needed
         _isOpen = false;
         _colorPairs.clear();
@@ -477,13 +479,14 @@ std::vector<Key> NCursesDisplay::getKeys()
             }
             continue;
         }
+        const auto now = Clock::now();
         switch (ch)
         {
             case 27:        keys.push_back(Key::ESCAPE); break;
-            case KEY_UP:    keys.push_back(Key::UP);     break;
-            case KEY_DOWN:  keys.push_back(Key::DOWN);   break;
-            case KEY_LEFT:  keys.push_back(Key::LEFT);   break;
-            case KEY_RIGHT: keys.push_back(Key::RIGHT);  break;
+            case KEY_UP:    keys.push_back(Key::UP);    _keyTimestamps[Key::UP]    = now; break;
+            case KEY_DOWN:  keys.push_back(Key::DOWN);  _keyTimestamps[Key::DOWN]  = now; break;
+            case KEY_LEFT:  keys.push_back(Key::LEFT);  _keyTimestamps[Key::LEFT]  = now; break;
+            case KEY_RIGHT: keys.push_back(Key::RIGHT); _keyTimestamps[Key::RIGHT] = now; break;
             case '\n':      keys.push_back(Key::ENTER);  break;
             case ' ':       keys.push_back(Key::SPACE);  break;
             case '\t':      keys.push_back(Key::TAB);    break;
@@ -512,6 +515,25 @@ std::vector<Key> NCursesDisplay::getKeys()
         }
     }
     return keys;
+}
+
+// ─── getHeldKeys ──────────────────────────────────────────────────────────────
+// NCurses cannot poll hardware key state, so we approximate "held" by
+// tracking the last time each directional key was seen in getKeys().
+// Any key seen within HELD_KEY_TIMEOUT_MS is considered still held.
+// This gives Survivor (and any game needing continuous movement) the same
+// smooth feel as SFML/SDL2 without the 500ms OS-repeat startup delay.
+std::vector<Key> NCursesDisplay::getHeldKeys()
+{
+    std::vector<Key> held;
+    const auto now = Clock::now();
+    const auto timeout = std::chrono::milliseconds(NCursesConfig::HELD_KEY_TIMEOUT_MS);
+
+    for (const auto& [key, ts] : _keyTimestamps) {
+        if (now - ts <= timeout)
+            held.push_back(key);
+    }
+    return held;
 }
 
 // ─── getMouseEvents ───────────────────────────────────────────────────────────

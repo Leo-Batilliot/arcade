@@ -161,6 +161,24 @@ void SFMLDisplay::fillMouseEvent(MouseEvent& mouseEvent, int pixelX, int pixelY)
 }
 
 // ─── Input ────────────────────────────────────────────────────────────────────
+std::vector<Key> SFMLDisplay::getHeldKeys()
+{
+    std::vector<Key> held;
+    auto check = [&](sf::Keyboard::Key sfKey, Key arcadeKey) {
+        if (sf::Keyboard::isKeyPressed(sfKey)) held.push_back(arcadeKey);
+    };
+    check(sf::Keyboard::Key::Up,    Key::UP);
+    check(sf::Keyboard::Key::Down,  Key::DOWN);
+    check(sf::Keyboard::Key::Left,  Key::LEFT);
+    check(sf::Keyboard::Key::Right, Key::RIGHT);
+    check(sf::Keyboard::Key::W,     Key::W);
+    check(sf::Keyboard::Key::A,     Key::A);
+    check(sf::Keyboard::Key::S,     Key::S);
+    check(sf::Keyboard::Key::D,     Key::D);
+    check(sf::Keyboard::Key::Space, Key::SPACE);
+    return held;
+}
+
 std::vector<Key> SFMLDisplay::getKeys()
 {
     std::vector<Key> keys;
@@ -414,30 +432,48 @@ void SFMLDisplay::drawText(const std::string& text, float relativeX, float relat
 }
 
 // ─── drawLine ─────────────────────────────────────────────────────────────────
-void SFMLDisplay::drawLine(char /*c*/, float x1, float x2, float y,
+void SFMLDisplay::drawLine(char c, float x1, float x2, float y,
                             const Color& fg, const Color& bg, float scale)
 {
-    if (!_window)
-    {
+    if (!_window || x2 <= x1)
         return;
-    }
 
     const float px1 = x1 * WIN_W;
     const float px2 = x2 * WIN_W;
     const float py  = y  * WIN_H;
-    const float thickness = std::max(1.f, scale * 2.f);
+    const unsigned fontSize = (unsigned)std::max(8, (int)(DisplayConfig::BASE_FONT_SIZE * scale));
+    const float lineH = static_cast<float>(fontSize) * 1.4f;
 
+    // Background rectangle (top 10% trimmed — glyphs don't reach the top of their metrics box)
+    const float bgH    = lineH * 0.9f;
+    const float bgTopY = py - lineH / 2.f + lineH * 0.1f; // shift top edge down by 10%
     if (bg.r || bg.g || bg.b) {
-        sf::RectangleShape strip({px2 - px1, thickness + 2.f});
-        strip.setPosition({px1, py - (thickness + 2.f) / 2.f});
+        sf::RectangleShape strip({px2 - px1, bgH});
+        strip.setPosition({px1, bgTopY});
         strip.setFillColor(toSFML(bg));
         _window->draw(strip);
     }
 
-    sf::RectangleShape line({px2 - px1, thickness});
-    line.setPosition({px1, py - thickness / 2.f});
-    line.setFillColor(toSFML(fg));
-    _window->draw(line);
+    // Tile the character across the line
+    if (_fontLoaded && c != ' ') {
+        // Estimate count from single-char width
+        sf::Text probe(_font, sf::String(std::string(1, c)), fontSize);
+        const float charW = probe.getLocalBounds().size.x + 1.f;
+        if (charW > 0.f && px2 > px1) {
+            int count = std::max(1, static_cast<int>((px2 - px1) / charW));
+            // Verify with actual string bounds and trim until it fits
+            sf::Text txt(_font, sf::String(std::string(count, c)), fontSize);
+            while (count > 1 && txt.getLocalBounds().size.x > px2 - px1) {
+                count--;
+                txt.setString(std::string(count, c));
+            }
+            txt.setFillColor(toSFML(fg));
+            const sf::FloatRect b = txt.getLocalBounds();
+            txt.setOrigin({b.position.x, b.position.y + b.size.y / 2.f});
+            txt.setPosition({px1, py});
+            _window->draw(txt);
+        }
+    }
 }
 
 void SFMLDisplay::drawRect(float x1, float y1, float x2, float y2, const Color& color)

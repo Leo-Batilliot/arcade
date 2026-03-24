@@ -22,10 +22,11 @@ add_subdirectory(graphics/sfml)
 add_subdirectory(graphics/sdl2)
 add_subdirectory(games/snake)
 add_subdirectory(games/minesweeper)
+add_subdirectory(games/survivor)
 
 add_custom_target(core       DEPENDS arcade                                  COMMENT "arcade executable")
 add_custom_target(graphicals DEPENDS arcade_ncurses arcade_sfml arcade_sdl2  COMMENT "display libs")
-add_custom_target(games      DEPENDS arcade_snake arcade_minesweeper          COMMENT "game libs")
+add_custom_target(games      DEPENDS arcade_snake arcade_minesweeper arcade_survivor    COMMENT "game libs")
 
 message(STATUS "")
 message(STATUS "=== Arcade ===  build type: ${CMAKE_BUILD_TYPE}  |  C++${CMAKE_CXX_STANDARD}")

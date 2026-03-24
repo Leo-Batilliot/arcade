@@ -249,11 +249,12 @@ void Core::saveScores()
     }
 }
 
-void Core::updateScore(const std::string& gameName, int score)
+bool Core::updateScore(const std::string& gameName, int score)
 {
     const int durationSeconds = (int)std::chrono::duration<float>(
         std::chrono::steady_clock::now() - _gameStartTime).count();
     auto& entries = _scores[gameName];
+    const bool isNewRecord = entries.empty() || score > entries[0].score;
     entries.push_back({_playerName, score, durationSeconds, currentDate()});
     std::sort(entries.begin(), entries.end(),
         [](const ScoreEntry& lhs, const ScoreEntry& rhs) {
@@ -263,6 +264,7 @@ void Core::updateScore(const std::string& gameName, int score)
     if (entries.size() > (std::size_t)CoreConfig::MAX_SCORES_PER_GAME)
         entries.resize(CoreConfig::MAX_SCORES_PER_GAME);
     saveScores();
+    return isNewRecord;
 }
 
 void Core::run()

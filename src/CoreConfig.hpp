@@ -34,12 +34,6 @@ namespace CoreConfig {
     constexpr Color HUD_LINE_COLOR       = Colors::DarkGray;
     constexpr Color HUD_LINE_BG_COLOR    = Colors::Black;
 
-    // ── HUD score / game info (center) ────────────────────────────────────────
-    constexpr float HUD_SCORE_TEXT_X     = 0.5f;
-    constexpr float HUD_SCORE_TEXT_Y     = 0.90f;
-    constexpr Color HUD_SCORE_TEXT_COLOR = Colors::White;
-    constexpr float HUD_SCORE_TEXT_SCALE = 1.0f;
-
     // ── HUD shortcuts (right side hints) ──────────────────────────────────────
     constexpr float HUD_KEYS_TEXT_X        = 0.75f;
     constexpr float HUD_KEYS_TEXT_Y        = 0.90f;
@@ -156,8 +150,9 @@ namespace GameOverLayout {
     constexpr float BOX_LINE_X2    = 0.75f;
     constexpr float BOX_TOP_LINE_Y = 0.38f;
     constexpr float BOX_BOT_LINE_Y = 0.64f;
-    constexpr Color BOX_WON_COLOR  = Colors::Green;
-    constexpr Color BOX_LOST_COLOR = Colors::Red;
+    constexpr Color BOX_RECORD_COLOR = Colors::Yellow; // new best score
+    constexpr Color BOX_WON_COLOR    = Colors::Green;  // kept for future use
+    constexpr Color BOX_LOST_COLOR   = Colors::Red;
 
     // Title ("GAME OVER" / "CONGRATULATIONS!")
     constexpr float TITLE_X     = 0.5f;

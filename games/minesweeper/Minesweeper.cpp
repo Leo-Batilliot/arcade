@@ -58,7 +58,6 @@ void Minesweeper::initBoard()
     _gameOver = false;
     _started  = false;
     _elapsed  = 0.f;
-    _keyTimer = 0.f;
     _currentX = _cols / 2;
     _currentY = _rows / 2;
 
@@ -194,20 +193,35 @@ void Minesweeper::update(float deltaTime, const std::vector<Key>& keys)
 {
     if (_gameOver)
         return;
+    _totalTime += deltaTime;
     if (_started)
         _elapsed += deltaTime;
 
-    _keyTimer += deltaTime;
-    if (_keyTimer < KEY_DELAY)
-        return;
+    for (auto& pair : _keyStates) {
+        if (std::find(keys.begin(), keys.end(), pair.first) == keys.end()) {
+            pair.second.isPressed = false;
+        }
+    }
 
     for (const auto key : keys) {
-        bool moved = false;
+        auto& state = _keyStates[key]; 
 
-        if (key == Key::UP    && _currentY > 0)          { --_currentY; moved = true; }
-        if (key == Key::DOWN  && _currentY < _rows - 1)  { ++_currentY; moved = true; }
-        if (key == Key::LEFT  && _currentX > 0)          { --_currentX; moved = true; }
-        if (key == Key::RIGHT && _currentX < _cols - 1)  { ++_currentX; moved = true; }
+        bool executeAction = false;
+
+        if (!state.isPressed) {
+            state.isPressed = true;
+            state.lastActionTime = _totalTime;
+            executeAction = true;
+        } else if (_totalTime - state.lastActionTime >= MinesweeperConfig::KEY_REPEAT_DELAY) {
+            state.lastActionTime = _totalTime;
+            executeAction = true;
+        }
+        if (!executeAction)
+            continue;
+        if (key == Key::UP    && _currentY > 0)          --_currentY;
+        if (key == Key::DOWN  && _currentY < _rows - 1)  ++_currentY; 
+        if (key == Key::LEFT  && _currentX > 0)          --_currentX;
+        if (key == Key::RIGHT && _currentX < _cols - 1)  ++_currentX;
         if (key == Key::ENTER) {
             if (!_started) {
                 _started = true;
@@ -218,7 +232,6 @@ void Minesweeper::update(float deltaTime, const std::vector<Key>& keys)
                 _soundSafe = true;
             if (!_gameOver)
                 checkWin();
-            moved = true;
         }
         if (key == Key::SPACE) {
             auto& boardCell = _board[_currentY][_currentX];
@@ -226,15 +239,10 @@ void Minesweeper::update(float deltaTime, const std::vector<Key>& keys)
                 boardCell.flagged = !boardCell.flagged;
                 _soundFlag = true;
             }
-            moved = true;
         }
         if (key == Key::R) {
             init();
             return;
-        }
-        if (moved) {
-            _keyTimer = 0.f;
-            break;
         }
     }
 }
@@ -341,7 +349,7 @@ void Minesweeper::render(IDisplayModule& display)
                      _currentX, _currentY,
                      MinesweeperConfig::GRID_STYLE);
 
-    display.drawText("ENTER:Reveal  SPC:Flag  R:Reset",
+    display.drawText("ENTER:Reveal      SPC:Flag",
                      MinesweeperLayout::CONTROLS_X, MinesweeperLayout::CONTROLS_Y,
                      MinesweeperLayout::CONTROLS_COLOR, nullptr,
                      MinesweeperLayout::CONTROLS_SCALE);

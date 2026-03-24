@@ -1,7 +1,9 @@
 #pragma once
 #include "IGameModule.hpp"
 #include "GameConfig.hpp"
+#include <map>
 #include <vector>
+#include <unordered_map>
 
 namespace Arcade {
 
@@ -23,7 +25,6 @@ public:
     std::string getName()    const override { return "Minesweeper"; }
 
 private:
-    static constexpr float KEY_DELAY = MinesweeperConfig::KEY_DELAY;
 
     struct BoardCell {
         bool mine     = false;
@@ -42,7 +43,14 @@ private:
     bool  _started  = false;
     int   _score    = 0;
     float _elapsed  = 0.f;
-    float _keyTimer = 0.f;
+    float _totalTime = 0.f;
+    
+    struct KeyState {
+        bool isPressed = false;
+        float lastActionTime = 0.f;
+    };
+
+    std::unordered_map<Key, KeyState> _keyStates;
 
     int _currentX = 0;
     int _currentY = 0;

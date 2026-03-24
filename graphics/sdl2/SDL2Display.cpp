@@ -212,6 +212,23 @@ void SDL2Display::fillMouseEvent(MouseEvent& mouseEvent, int pixelX, int pixelY)
 }
 
 // ─── Input ────────────────────────────────────────────────────────────────────
+std::vector<Key> SDL2Display::getHeldKeys()
+{
+    // SDL_GetKeyboardState is updated by SDL_PollEvent (already called in getKeys()).
+    const Uint8* state = SDL_GetKeyboardState(nullptr);
+    std::vector<Key> held;
+    if (state[SDL_SCANCODE_UP])    held.push_back(Key::UP);
+    if (state[SDL_SCANCODE_DOWN])  held.push_back(Key::DOWN);
+    if (state[SDL_SCANCODE_LEFT])  held.push_back(Key::LEFT);
+    if (state[SDL_SCANCODE_RIGHT]) held.push_back(Key::RIGHT);
+    if (state[SDL_SCANCODE_W])     held.push_back(Key::W);
+    if (state[SDL_SCANCODE_A])     held.push_back(Key::A);
+    if (state[SDL_SCANCODE_S])     held.push_back(Key::S);
+    if (state[SDL_SCANCODE_D])     held.push_back(Key::D);
+    if (state[SDL_SCANCODE_SPACE]) held.push_back(Key::SPACE);
+    return held;
+}
+
 std::vector<Key> SDL2Display::getKeys()
 {
     std::vector<Key> keys;
@@ -483,28 +500,51 @@ void SDL2Display::drawText(const std::string& text, float relativeX, float relat
 }
 
 // ─── drawLine ─────────────────────────────────────────────────────────────────
-void SDL2Display::drawLine(char /*c*/, float x1, float x2, float y,
+void SDL2Display::drawLine(char c, float x1, float x2, float y,
                             const Color& fg, const Color& bg, float scale)
 {
-    if (!_renderer)
+    if (!_renderer || x2 <= x1)
         return;
 
     const int px1 = (int)(x1 * WIN_W);
     const int px2 = (int)(x2 * WIN_W);
     const int py  = (int)(y  * WIN_H);
-    const int thickness = std::max(1, (int)(scale * 2.f));
+    const int fontSize = std::max(8, (int)(DisplayConfig::BASE_FONT_SIZE * scale));
+    TTF_Font* font = getCachedFont(fontSize);
 
+    // Measure character dimensions for the background height
+    int charH = fontSize;
+    int charW = fontSize / 2;
+    if (font) {
+        char tmp[2] = {c, '\0'};
+        TTF_SizeText(font, (c != ' ') ? tmp : "o", &charW, &charH);
+    }
+
+    // Background rectangle (top 10% trimmed — glyphs don't reach the top of their metrics box)
+    const int bgH    = charH * 9 / 10;
+    const int bgTopY = py - charH / 2 + charH / 10; // shift top edge down by 10%
     if (bg.r || bg.g || bg.b) {
-        SDL_Rect strip = {px1, py - thickness - 1, px2 - px1, thickness * 2 + 2};
+        SDL_Rect strip = {px1, bgTopY, px2 - px1, bgH};
         SDL_SetRenderDrawColor(_renderer, bg.r, bg.g, bg.b, 255);
         SDL_RenderFillRect(_renderer, &strip);
     }
 
-    for (int i = 0; i < thickness; ++i)
-        SDL_RenderDrawLine(_renderer, px1, py - thickness/2 + i,
-                                      px2, py - thickness/2 + i);
-    SDL_SetRenderDrawColor(_renderer, fg.r, fg.g, fg.b, 255);
-    SDL_RenderDrawLine(_renderer, px1, py, px2, py);
+    // Tile the character across the line
+    if (font && c != ' ' && charW > 0 && px2 > px1) {
+        const int count = std::max(1, (px2 - px1) / charW);
+        const std::string str(count, c);
+        SDL_Color color = {fg.r, fg.g, fg.b, 255};
+        SDL_Surface* surf = TTF_RenderText_Blended(font, str.c_str(), color);
+        if (surf) {
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(_renderer, surf);
+            if (tex) {
+                SDL_Rect dst = {px1, py - surf->h / 2, surf->w, surf->h};
+                SDL_RenderCopy(_renderer, tex, nullptr, &dst);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_FreeSurface(surf);
+        }
+    }
 }
 
 void SDL2Display::drawRect(float x1, float y1, float x2, float y2, const Color& color)

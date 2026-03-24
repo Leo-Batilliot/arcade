@@ -41,6 +41,13 @@ public:
     /// Returns all keyboard events queued since last call.
     [[nodiscard]] virtual std::vector<Key> getKeys() = 0;
 
+    /// Returns all keys currently held down (hardware-polled state).
+    /// Unlike getKeys() which returns edge-triggered events, this returns every
+    /// key that is physically pressed right now.
+    /// SFML/SDL2: real hardware state (no delay, fully combinable).
+    /// ncurses: timeout-based approximation (key stays "held" ~400 ms after last event).
+    [[nodiscard]] virtual std::vector<Key> getHeldKeys() { return {}; }
+
     /// Returns mouse click/release events.  Each event carries both:
     ///   - relativeX/relativeY : screen-ratio position [0..1]
     ///   - gridX/gridY         : cell coordinates in the last drawGrid() call (−1 if outside)

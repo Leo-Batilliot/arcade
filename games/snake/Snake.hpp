@@ -2,7 +2,9 @@
 #include "IGameModule.hpp"
 #include "GameConfig.hpp"
 #include <deque>
+#include <map>
 #include <vector>
+#include <unordered_map>
 
 namespace Arcade {
 
@@ -52,6 +54,13 @@ private:
     float _elapsed = 0.f;
     float _stepTimer  = 0.f;
     float _boostTimer = 0.f; ///< remaining seconds of orange speed boost
+
+    struct KeyState {
+        bool isPressed = false;
+        float lastActionTime = 0.f;
+    };
+
+    std::unordered_map<Key, KeyState> _keyStates;
 
     bool _movedThisStep   = false;
     bool _ateFoodThisStep = false;

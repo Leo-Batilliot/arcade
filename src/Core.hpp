@@ -31,8 +31,9 @@ public:
 private:
     enum class State { MENU, PLAYING, GAMEOVER };
     State _state   = State::MENU;
-    bool  _running = true;
-    int   _volume  = 100;
+    bool  _running      = true;
+    bool  _isNewRecord  = false; ///< true when the last game ended with a new best score
+    int   _volume       = 100;
 
     std::string _playerName         = "Player";
     std::chrono::steady_clock::time_point _gameStartTime;
@@ -110,7 +111,8 @@ private:
     void saveScores();
 
     /// @brief Update the stored high score for @p gameName if @p score is better.
-    void updateScore(const std::string& gameName, int score);
+    /// @return true if @p score is a new all-time best for this game.
+    bool updateScore(const std::string& gameName, int score);
 
     void runMenu();
     void runGame();

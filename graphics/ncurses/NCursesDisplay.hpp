@@ -4,6 +4,7 @@
 #include <ncurses.h>
 #include <vector>
 #include <cstdint>
+#include <chrono>
 #include <map>
 
 namespace Arcade {
@@ -34,6 +35,7 @@ public:
 
     /// @brief Mouse events are collected inside getKeys() to mirror SFML/SDL2 behaviour.
     std::vector<Key>        getKeys()                    override;
+    std::vector<Key>        getHeldKeys()                override;
     std::vector<MouseEvent> getMouseEvents()             override;
     std::pair<float, float> getMousePosition()     const override;
     bool                    hasMouseMoved()        const override;
@@ -75,6 +77,9 @@ private:
     std::vector<MouseEvent> _pendingMouseEvents;
     std::string _textInput;
 
+    using Clock = std::chrono::steady_clock;
+    std::map<Key, Clock::time_point> _keyTimestamps; ///< last time each key was seen in getKeys()
+
     struct GridState {
         int gridWidth  = 0;
         int gridHeight = 0;
@@ -92,6 +97,7 @@ private:
     /// Key: (fg256index, bg256index)  Value: ncurses pair number.
     std::map<std::pair<int, int>, int> _colorPairs;
     int _nextPairNum = 8; ///< Pairs 1-7 are reserved for 8-color fallback.
+
 
     /// @brief Allocates an ncurses color pair on first use; falls back gracefully when COLOR_PAIRS is full.
     int    getOrCreatePair(int fgIdx, int bgIdx);

@@ -34,6 +34,7 @@ public:
     [[nodiscard]] bool isOpen() const override;
 
     std::vector<Key>        getKeys()                    override;
+    std::vector<Key>        getHeldKeys()                override;
     std::vector<MouseEvent> getMouseEvents()             override;
     std::pair<float, float> getMousePosition()     const override;
     bool                    hasMouseMoved()        const override;
