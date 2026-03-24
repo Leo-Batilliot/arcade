@@ -103,7 +103,28 @@ void Snake::update(float deltaTime, const std::vector<Key>& keys)
 
     _elapsed += deltaTime;
 
+    for (auto& pair : _keyStates) {
+        if (std::find(keys.begin(), keys.end(), pair.first) == keys.end()) {
+            pair.second.isPressed = false;
+        }
+    }
+
     for (const auto key : keys) {
+        auto& state = _keyStates[key]; 
+
+        bool executeAction = false;
+
+        if (!state.isPressed) {
+            state.isPressed = true;
+            state.lastActionTime = _elapsed;
+            executeAction = true;
+        } else if (_elapsed - state.lastActionTime >= SnakeConfig::KEY_REPEAT_DELAY) {
+            state.lastActionTime = _elapsed;
+            executeAction = true;
+        }
+
+        if (!executeAction)
+            continue;
         if (key == Key::UP    && _direction != Direction::DOWN)
             { _nextDirection = Direction::UP;    _movedThisStep = true; }
         if (key == Key::DOWN  && _direction != Direction::UP)
@@ -292,7 +313,7 @@ void Snake::render(IDisplayModule& display)
                      SnakeLayout::STATS_COLOR, nullptr,
                      SnakeLayout::STATS_SCALE);
 
-    display.drawText("Arrows: Move      R:Reset",
+    display.drawText("Arrows: Move",
                      SnakeLayout::CONTROLS_X, SnakeLayout::CONTROLS_Y,
                      SnakeLayout::CONTROLS_COLOR, nullptr,
                      SnakeLayout::CONTROLS_SCALE);

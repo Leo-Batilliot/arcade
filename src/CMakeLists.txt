@@ -1,5 +1,31 @@
 include(${CMAKE_SOURCE_DIR}/cmake/ArcadeEmbed.cmake)
 arcade_embed_asset("assets/Losing.ogg")
+arcade_embed_asset("assets/win.ogg")
+
+# ── Embed win.ogg (stub with 0 bytes if file not yet present) ─────────────────
+set(_WIN_OGG_SRC "${CMAKE_CURRENT_SOURCE_DIR}/assets/win.ogg")
+set(_WIN_OGG_GEN "${CMAKE_CURRENT_BINARY_DIR}/WIN_OGG.gen.cpp")
+if(EXISTS "${_WIN_OGG_SRC}")
+    file(READ "${_WIN_OGG_SRC}" _WIN_BYTES_HEX HEX)
+    string(LENGTH "${_WIN_BYTES_HEX}" _WIN_HEX_LEN)
+    math(EXPR _WIN_BYTE_LEN "${_WIN_HEX_LEN} / 2")
+    string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," _WIN_BYTES_COMMA "${_WIN_BYTES_HEX}")
+    file(WRITE "${_WIN_OGG_GEN}"
+        "// Auto-generated — do not edit.\n"
+        "namespace Arcade {\n"
+        "extern const unsigned char WIN_OGG_DATA[] = {${_WIN_BYTES_COMMA}0x00};\n"
+        "extern const unsigned int  WIN_OGG_SIZE   = ${_WIN_BYTE_LEN}u;\n"
+        "} // namespace Arcade\n")
+    message(STATUS "[arcade] Embedded win.ogg (${_WIN_BYTE_LEN} bytes)")
+else()
+    file(WRITE "${_WIN_OGG_GEN}"
+        "// Auto-generated — do not edit.\n"
+        "namespace Arcade {\n"
+        "extern const unsigned char WIN_OGG_DATA[] = {0x00};\n"
+        "extern const unsigned int  WIN_OGG_SIZE   = 0u;\n"
+        "} // namespace Arcade\n")
+    message(STATUS "[arcade] src/assets/win.ogg not found — win sound disabled")
+endif()
 
 # ── Embed menumusic.ogg as a C++ byte array ───────────────────────────────────
 set(_MENU_MUSIC_SRC "${CMAKE_CURRENT_SOURCE_DIR}/assets/menumusic.ogg")
@@ -34,6 +60,7 @@ add_executable(arcade
     core/CoreGameOver.cpp
     core/CoreVolume.cpp
     "${_MENU_MUSIC_GEN}"
+    "${_WIN_OGG_GEN}"
     ${ARCADE_ASSET_SOURCES}
 )
 

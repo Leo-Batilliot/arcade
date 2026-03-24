@@ -1,9 +1,12 @@
 #include "Core.hpp"
+#include <algorithm>
 #include <chrono>
 
 namespace Arcade {
     extern const unsigned char LOSING_OGG_DATA[];
     extern const unsigned int  LOSING_OGG_SIZE;
+    extern const unsigned char WIN_OGG_DATA[];
+    extern const unsigned int  WIN_OGG_SIZE;
 }
 
 namespace Arcade {
@@ -20,13 +23,23 @@ void Core::runGame()
         if (deltaTime > CoreConfig::MAX_DELTA_TIME)
             deltaTime = CoreConfig::MAX_DELTA_TIME;
 
-        const auto keys        = _display->getKeys();
+        const auto rawKeys     = _display->getKeys();
+        const auto heldKeys    = _display->getHeldKeys();
         const auto mouseEvents = _display->getMouseEvents();
         _display->getTextInput(); // drain — prevent accumulation into menu player name
 
-        handleVolumeKeys(keys);
+        // Merge raw events + hardware-polled held keys for game movement.
+        // ncurses: heldKeys is empty → rawKeys only (OS key-repeat drives movement).
+        // SFML/SDL2: union of both → diagonal movement + no startup delay.
+        std::vector<Key> gameKeys = rawKeys;
+        for (const auto k : heldKeys) {
+            if (std::find(gameKeys.begin(), gameKeys.end(), k) == gameKeys.end())
+                gameKeys.push_back(k);
+        }
 
-        for (const auto key : keys) {
+        handleVolumeKeys(rawKeys);
+
+        for (const auto key : rawKeys) {
             if (key == Key::TAB) {
                 const int nextIndex = (_currentDisplay + 1) % _displayLibs.size();
                 renderLoading(_displayLibs[nextIndex].name);
@@ -69,7 +82,7 @@ void Core::runGame()
                 }
             }
 
-            _game->update(deltaTime, keys);
+            _game->update(deltaTime, gameKeys);
             _display->clear();
             _game->render(*_display);
             renderHUD();
@@ -77,8 +90,11 @@ void Core::runGame()
 
             if (_game->isGameOver() || _game->hasWon()) {
                 _display->stopMusic();
-                _display->playSound(LOSING_OGG_DATA, LOSING_OGG_SIZE);
-                updateScore(_gameLibs[_currentGame].name, _game->getScore());
+                _isNewRecord = updateScore(_gameLibs[_currentGame].name, _game->getScore());
+                if (_isNewRecord && WIN_OGG_SIZE > 0)
+                    _display->playSound(WIN_OGG_DATA, WIN_OGG_SIZE);
+                else
+                    _display->playSound(LOSING_OGG_DATA, LOSING_OGG_SIZE);
                 _state = State::GAMEOVER;
                 return;
             }
@@ -95,13 +111,6 @@ void Core::renderHUD()
         CoreConfig::HUD_LINE_X_START, CoreConfig::HUD_LINE_X_END,
         CoreConfig::HUD_LINE_Y,
         CoreConfig::HUD_LINE_COLOR, CoreConfig::HUD_LINE_BG_COLOR);
-
-    const std::string scoreText =
-        _game->getName() + "   Score: " + std::to_string(_game->getScore());
-    _display->drawText(scoreText,
-        CoreConfig::HUD_SCORE_TEXT_X, CoreConfig::HUD_SCORE_TEXT_Y,
-        CoreConfig::HUD_SCORE_TEXT_COLOR, nullptr,
-        CoreConfig::HUD_SCORE_TEXT_SCALE);
 
     const int nextDisplayIndex = (_currentDisplay + 1) % _displayLibs.size();
     const std::string tabText =
