@@ -1,5 +1,7 @@
 # Arcade
 
+![Demo](docs/demo.gif)
+
 A modular arcade platform in C++17 that dynamically loads graphical and game libraries at runtime.
 
 ## Collaborating group
